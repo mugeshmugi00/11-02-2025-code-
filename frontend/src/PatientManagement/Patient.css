@@ -1,0 +1,283 @@
+
+.chart_body_1_child_1 {
+    height: 100px;
+    width: 200px;
+    border-radius: 10px;
+    padding: 5px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: space-around;
+    background-color: #fff;
+  }
+
+
+
+  .chart_body_1_child_1_body {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 0px 10px;
+  }
+  
+
+  .chart_body_1_child_1_body_icon {
+    height: 30px;
+    width: 30px;
+    display: grid;
+    place-items: center;
+    background-color: var(--ProjectColor);
+    color: var(--labelcolor) !important;
+    border-radius: 5px;
+  }
+  
+
+  .chart_body_1_child_1_body_count h2 {
+    pad: 0px !important;
+    margin: 0px !important;
+    font-size: 17px;
+    color: var(--labelcolor);
+    align-items: center;
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+  }
+
+ 
+
+  .chart_body_1_child_1_body_name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+
+  .dww3{
+    border: 1px solid var(--ProjectColor);
+    box-shadow: 1px 1px 5px 5px rgb(212, 229, 229);
+  }
+
+
+.con_1 {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 0 !important;
+    padding: 10px 0;
+}
+
+
+/* changes for patient profile */
+.ProfileContainer{
+  /* background-color: rgb(124, 8, 233); */
+  display: flex;
+  height: 100vh;
+  padding: 20px;
+  
+  font-family:Arial, sans-serif;
+  
+  
+}
+.LeftContainer{
+  
+  width: 35%;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-radius: 10px;
+  
+}
+.LeftContainer button{
+  margin-top:5px ;
+  padding: 10px 10px;
+  /* background-color: cadetblue; */
+  /* border: 1px solid black; */
+  color: #0c0101;
+  border-radius: 10px;
+  border: 2px solid black;
+  cursor: pointer;
+  width: 50% ;
+  font-weight: bold;
+  font-size: medium;
+}
+.imagebox{
+  height: 30%;
+  width: 40%;
+  margin: 10px 0px 0px 0px ;
+  
+}
+.imagebox span{
+  Margin: 5px;
+}
+.imagebox img{
+  border-radius: 50%;
+  /* width: 100%; */
+  height: 100%;
+  
+}
+
+.RightContainer{
+  background-color: #f5f5f5;
+  width: 60%;
+  margin-left: 5%;
+  overflow: scroll;
+  
+}
+.RightContainer button{
+  float: right;}
+
+.viewbutton{
+  background-color: #f5f5f5;
+  margin-right: 10px;
+  padding: 5px 10px;
+  border:none;
+  cursor: pointer;
+}
+
+.recordcard{
+  
+  background-color:#fff;
+  padding: 15px;
+  margin: 15px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  width: 90%;
+
+}
+.medicalheader{
+  display:flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 20px 0px;  
+
+}
+
+
+
+.popupcontainer{
+  background-color: #fff;
+  width: 80%;
+  height: 420px;
+  border-radius: 5px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: space-around;
+  position: relative;
+  padding-top: 20px;
+  padding: 18px;
+  gap: 10px;
+  
+}
+.recordpopup{
+background-color: #fff;
+width: 60%;
+height: 90%;
+border-radius: 5px;
+box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+display: flex;
+flex-direction: column;
+align-items: center;
+text-align: center;
+justify-content: space-around;
+padding-top: 20px;
+padding: 18px;
+gap: 10px;
+overflow: scroll;
+}
+
+
+
+
+
+.popupcontainer button ,.recordpopup button{
+padding: 10px;
+width: 10%;
+border-radius: 20px;
+}
+
+
+
+/* Media queries for small screens */
+@media (max-width: 768px) {
+.imagebox {
+    max-width: 20px; /* Reduce size for smaller screens */
+}
+}
+
+/* Media queries for very small screens */
+@media (max-width: 650px) {
+.imagebox {
+    max-width:50px; /* Further reduce size for phones */
+}
+.recordpopup{
+  min-width: 80%;
+}
+.recordpopup button{
+  width: 30%;
+}
+.popupcontainer{
+  width: 70%;
+}
+.popupcontainer button{
+  width: 30%;
+}
+.ProfileContainer{
+  display: flex;
+  flex-direction: column;
+}
+.LeftContainer{
+  
+  width: 100%;
+  overflow: visible;
+}
+.RightContainer{
+  
+  width: 100%;
+  overflow: visible;
+  margin: 20px 10px 0px 0px;
+  border-radius: 10px;
+}
+.medicalheader{
+  display: flex;
+  flex-direction: column;
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

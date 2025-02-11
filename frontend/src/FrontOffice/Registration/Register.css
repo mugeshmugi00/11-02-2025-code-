@@ -1,0 +1,48 @@
+
+.RegisForm_text{
+    /* width: 412px ;  */
+    /* width: 295px; */
+    /* height:auto; */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+   
+    
+}    
+
+.RegisForm_text label{
+    width: 120px;
+    display: flex;
+    font-size: var(--fontsize);
+    font-weight: bold;
+    justify-content: space-between;
+    text-align: start;
+    align-items: center;
+    gap: 10px;
+    color: var(--labelcolor);
+}
+
+.RegisForm_text textarea {
+    width: 480px;
+    border: 1px solid #ccc;
+    outline: 0px;
+    display: flex;
+    padding: 0px 5px;
+    border-radius: 5px;
+    height: 60px;
+    cursor: pointer;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

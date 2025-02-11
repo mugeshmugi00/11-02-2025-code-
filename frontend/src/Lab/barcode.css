@@ -1,0 +1,212 @@
+/* .barcode_container_print_data_new {
+    width: 4CM;
+    height: 2.4CM;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid black;
+    border-radius: 10px;
+    box-shadow: 1px 0px 10px 0.5px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    box-sizing: border-box; 
+} */
+
+
+.barcode_container_print_data_new {
+
+    width: 12CM;
+    height: 3cm;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    box-shadow: 1px 0px 10px 0.5px;
+    align-items: center;
+    font-size: 11px;
+    padding: 10px;
+    font-weight: 600;
+    box-sizing: border-box;
+    margin: 2px;
+    overflow: hidden;
+}
+
+.parent_barcode_div_new {
+    width: 240px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    gap: 15px;
+}
+
+.div_grand_parent {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.barcode_patient_new {
+    display: flex;
+}
+
+.barcode_dept {
+    display: flex;
+}
+
+
+.report_table_for_micro{
+    border-collapse: collapse;
+    width: 100%;
+
+}
+
+
+.comments_for_microscopy{
+    padding: 0px 5px;
+    height: 100%;
+    width: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: grey;
+    gap: 5px;
+    position: relative;
+    top: 10px;
+    margin-bottom: 25px;
+}
+.comments_for_microscopy textarea{
+    width: 75%;
+    height: 60px;
+}
+.comments_for_microscopy label{
+    width: 120px;
+    display: flex;
+    font-size: var(--fontsize);
+    font-weight: bold;
+    justify-content: space-between;
+    text-align: start;
+    align-items: center;
+    gap: 10px;
+    color: var(--labelcolor);
+}
+
+.report_table_for_micro td{
+    padding: 2px;
+}
+
+
+.wuduwuff{
+    display: flex;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 7px !important;
+    justify-content: space-between;
+}
+
+
+.wuduwuff22{
+    display: flex;
+    width: 100%;
+    align-items: center;
+margin-bottom: 7px !important;
+    justify-content: space-between;
+}
+
+
+
+.barcode_patient_new p{
+    height: 11px !important;
+}
+
+
+.sdsc_o9_hed{
+    width: 80%;
+text-align: center;
+}
+
+.sdsc_o9{
+    width: 20%;
+    text-align: end;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 0 !important;
+    }
+
+    body {
+        margin: 0 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 !important;
+        outline: none !important;
+    }
+
+    .parent_barcode_div_new {
+        width: auto; 
+        margin: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 0.2cm; /* Adjust gap between stickers */
+        padding: 0.2cm;
+    }
+
+    .barcode_container_print_data_new {
+        width: 5cm; /* Fixed width for each sticker */
+        height: 2.5cm; /* Fixed height for each sticker */
+        padding: 0.2cm;
+        margin: 0;
+        page-break-inside: avoid;
+    }
+
+    .barcode_patient_new {
+        text-align: center;
+        font-size: 7px !important; /* Smaller font size */
+    }
+
+    /* Make sure barcode is properly sized */
+    .barcode_container_print_data_new .Barcode {
+
+        width: 100% !important; /* Ensure barcode width adjusts */
+        /* margin: 3px 0; */
+
+    }
+
+    /* Hide print button during print */
+    .Register_btn_con {
+        display: none;
+    }
+
+    /* Hide unnecessary components */
+    .Rhugt_report {
+        display: none;
+    }
+
+    .barcode_patient_new p {
+
+        height: 5px !important;
+        margin: 0;
+        font-size: 5px !important;
+     
+
+    }
+
+
+    .uuuu_ppp p{
+        font-size: 7px !important;
+    }
+
+    .wswswsws p{
+        font-size: 9px  !important ;
+    }
+}

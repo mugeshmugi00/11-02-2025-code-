@@ -1,0 +1,6 @@
+.form-row-inline{
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    flex-wrap: nowrap;
+}

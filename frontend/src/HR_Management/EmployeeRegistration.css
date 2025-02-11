@@ -1,0 +1,20 @@
+.valid-label {
+    border: 1px solid green;
+    outline: none;
+    /* padding: 5px;
+    border-radius: 5px; */
+  }
+  
+  .invalid-label {
+    border: 1px solid red;
+    outline: none;
+
+    /* padding: 5px;
+    border-radius: 5px; */
+  }
+  
+  .fc-theme-standard td, .fc-theme-standard th{
+    border: 1px solid var(--fc-border-color);
+    font-size: 10px !important;
+
+  }
