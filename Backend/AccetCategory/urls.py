@@ -6,6 +6,7 @@ from .ServiceProviderMangement import *
 from .ChecklistManagement import *
 from .ChecklistMasterEntry import *
 from .AssetManagement import *
+from .AssetDocumentsupload import *
  
 urlpatterns = [
     path('asset_categories/', asset_categories, name='asset_categories'),  # Added trailing slash
@@ -44,7 +45,12 @@ urlpatterns = [
     
     # ---------------------------------------------assetList---------------------------------------------------
     path('assetList_Get/',assetList_Get,name='assetList_Get'),
-    # path('assetList_POST/',assetList_POST,name='assetList_POST'),
-    path('assetList_PUT/',assetList_PUT,name='assetList_PUT'),
+    path('assetList_PUT/<int:asset_id>',assetList_PUT,name='assetList_PUT'),
+    # ---------------------------------------------AssetDocumentsupload-----------------------------------------------
+    path('assetdocumentsuploadpost',assetdocumentsuploadpost,name="assetdocumentsuploadpost"),
+    path('assetdocumentsuploadget',assetdocumentsuploadget,name='assetdocumentsuploadget'),
+    path('get_assets',get_assets,name='get_assets'),
+    path('get_asset_sub',get_asset_sub,name='get_asset_sub'),
     
+
 ]

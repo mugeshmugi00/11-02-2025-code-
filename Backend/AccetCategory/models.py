@@ -142,8 +142,12 @@ class AssetReg_Data(models.Model):
     ]
     
     name = models.CharField(max_length=250)
-    category = models.ForeignKey(AssetCategory, on_delete=models.CASCADE, related_name='asset_registrations')
-    asset_subcategory = models.ManyToManyField(AssetSubCategory, related_name='asset_registrations')
+    current_location = models.CharField(max_length=255)
+    purchase_date = models.DateField(null=True, blank=True)
+    asset_code = models.CharField(max_length=255, unique=True, blank=True, null=True)  
+
+    category = models.ForeignKey(AssetCategory,  on_delete=models.CASCADE,related_name='asset_registrations')  
+    asset_subcategory = models.ForeignKey(AssetSubCategory, on_delete=models.CASCADE,null=True, blank=True)  
     supplier = models.ManyToManyField(Supplier, blank=True)
     Company_Brand= models.CharField(max_length=500)
     # department = models.ManyToManyField(Department, related_name='asset_registrations', blank=True)
@@ -192,6 +196,8 @@ class AssetList(models.Model):
     ]
 
     name = models.CharField(max_length=255)
+    asset_code = models.CharField(max_length=50, unique=True, null=True, blank=True)
+
     category = models.ForeignKey('AssetCategory', on_delete=models.CASCADE)
     subcategory = models.ForeignKey('AssetSubCategory', on_delete=models.CASCADE, null=True, blank=True)
     supplier = models.CharField(max_length=255, null=True, blank=True)
@@ -207,3 +213,24 @@ class AssetList(models.Model):
             max_id = AssetList.objects.aggregate(max_id=Max('id'))['max_id']
             self.id = (max_id or 0) + 1
         super().save(*args, **kwargs)
+   
+# -----------------------------------------------------------------------------------------------------------------
+class AssetDocuments_Uplode(models.Model):
+    category = models.ForeignKey(AssetCategory, on_delete=models.CASCADE, related_name='AssetDocuments_Uplode')
+    asset_subcategory = models.ForeignKey(AssetSubCategory, on_delete=models.CASCADE, related_name='AssetDocuments_Uplode')
+    asset_name = models.ForeignKey(AssetReg_Data, on_delete=models.CASCADE)
+    document_type = models.CharField(max_length=255)
+    file = models.BinaryField(editable=True)
+    description = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        db_table = 'AssetDocuments_Uplode'
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            max_id = AssetDocuments_Uplode.objects.aggregate(max_id=models.Max('id'))['max_id']
+            self.id = (max_id or 0) + 1
+        super().save(*args, **kwargs)
+        
+# ----------------------------------------------------------------------------------------------
+    

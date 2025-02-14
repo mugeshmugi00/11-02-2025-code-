@@ -5,7 +5,6 @@ from .models import *
 import json
 import traceback
    
-    
 @csrf_exempt  
 @require_http_methods(['GET'])
 def ServiceProviderManagement_GET(request):
@@ -15,21 +14,11 @@ def ServiceProviderManagement_GET(request):
         
         for provider in providers:
             try:
-                # Get all categories for this provider
-                categories_data = []
-                for category in provider.asset_categories.all():
-                    categories_data.append({
-                        'id': category.id,
-                        'name': category.name
-                    })
+                categories_data = [{'id': cat.id, 'name': cat.name} for cat in provider.asset_categories.all()]
+                print(f"Provider {provider.name} Categories:", categories_data)  # Debugging
 
-                # Get subcategories data
-                subcategories_data = []
-                for subcat in provider.subcategories.all():
-                    subcategories_data.append({
-                        'id': subcat.id,
-                        'name': subcat.name
-                    })
+                subcategories_data = [{'id': subcat.id, 'name': subcat.name} for subcat in provider.subcategories.all()]
+                print(f"Provider {provider.name} Subcategories:", subcategories_data)  # Debugging
 
                 provider_data = {
                     'id': provider.id,
@@ -48,6 +37,7 @@ def ServiceProviderManagement_GET(request):
                     'rating': str(provider.rating) if provider.rating else "0.00"
                 }
                 provider_list.append(provider_data)
+
             except Exception as provider_error:
                 print(f"Error processing provider {provider.id}: {str(provider_error)}")
                 print(traceback.format_exc())
@@ -56,13 +46,10 @@ def ServiceProviderManagement_GET(request):
         return JsonResponse(provider_list, safe=False, status=200)
     
     except Exception as e:
-        print("Error in ServiceProviderManagement_GET:")
-        print(str(e))
+        print("Error in ServiceProviderManagement_GET:", str(e))
         print(traceback.format_exc())
-        return JsonResponse({
-            'error': 'Internal server error',
-            'details': str(e)
-        }, status=500)
+        return JsonResponse({'error': 'Internal server error', 'details': str(e)}, status=500)
+
 
 
 @csrf_exempt  
@@ -86,13 +73,15 @@ def ServiceProviderManagement_POST(request):
             rating=data.get('rating', 0.0)
         )
         
-        # Handle categories
         category_ids = data.get('asset_categories', [])
+        if not isinstance(category_ids, list):  
+            category_ids = [category_ids]
+
         if category_ids:
             categories = AssetCategory.objects.filter(id__in=category_ids)
             provider.asset_categories.set(categories)
-        
-        # Handle subcategories
+
+
         subcategory_ids = data.get('subcategories', [])
         if subcategory_ids:
             subcategories = AssetSubCategory.objects.filter(id__in=subcategory_ids)
@@ -136,6 +125,7 @@ def ServiceProviderManagement_PUT(request, ServiceProviderManagement_id):
         if 'asset_categories' in data:
             category_ids = data['asset_categories']
             categories = AssetCategory.objects.filter(id__in=category_ids)
+            print("categories:",categories)
             provider.asset_categories.set(categories)
 
         # Update subcategories

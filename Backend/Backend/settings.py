@@ -146,7 +146,7 @@ CORS_ALLOW_HEADERS = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Chirayu_08_02_2025_001',
+        'NAME': 'Chirayu_08_02_2025_003',
         'USER': 'root',
         'PASSWORD': '12345678',
         'HOST': 'localhost',

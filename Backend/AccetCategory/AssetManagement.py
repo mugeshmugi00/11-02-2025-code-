@@ -21,20 +21,49 @@ def Asset_Reg_post(request):
             return JsonResponse({'error': 'Invalid JSON format'})
         
         category_id = int(data.pop('category', 0)) if data.get('category') else None
-        subcategory_ids = [int(id) for id in data.pop('asset_subcategory', []) if id]
+        subcategory_id = data.pop('asset_subcategory', None)
         supplier_ids = [int(id) for id in data.pop('supplier', []) if id]
 
-        asset = AssetReg_Data(**data)
+        # Generate asset_code
+        name_part = data.get('name', '')[:2].upper()  
+        location_part = ''.join(word[0].upper() for word in data.get('current_location', '').split())
+        date_part = data.get('purchase_date', '').replace('-', '')[2:]  
+
+        base_code = f"{name_part}/{location_part}/{date_part}"
+
+        existing_codes = set(AssetReg_Data.objects.values_list('asset_code', flat=True))
+
+        count = 1
+        unique_code = base_code
+
+        while unique_code in existing_codes:
+            unique_code = f"{base_code}/{str(count).zfill(2)}"
+            count += 1
+
+        data.pop("asset_code", None)  # Remove asset_code if present
+
+        asset = AssetReg_Data(**data, asset_code=unique_code)
+
 
         if category_id:
             asset.category = get_object_or_404(AssetCategory, id=category_id)
-
+            
+        asset = AssetReg_Data(**data)
+        if subcategory_id:
+            asset.asset_subcategory = get_object_or_404(AssetSubCategory, id=subcategory_id)
         asset.save()
 
-        asset.asset_subcategory.set(AssetSubCategory.objects.filter(id__in=subcategory_ids))
+        # asset.save()
+        # subcategory_id = data.pop('asset_subcategory', None)
+        # if subcategory_id:
+        #     asset.asset_subcategory = get_object_or_404(AssetSubCategory, id=subcategory_id)
+
+        # if subcategory_ids:
+        #     asset.asset_subcategory.set(AssetSubCategory.objects.filter(id__in=subcategory_ids))
+
         asset.supplier.set(Supplier.objects.filter(id__in=supplier_ids))
 
-        return JsonResponse({'id': asset.id, 'message': 'Asset created successfully'})
+        return JsonResponse({'id': asset.id, 'asset_code': asset.asset_code, 'message': 'Asset created successfully'})
     
     except Exception as e:
         return JsonResponse({'error': str(e)})
@@ -52,12 +81,13 @@ def Asset_Reg_Get(request):
         asset_data = {
             'id': asset.id,
             'Asset_id': asset.id,  
-            'Asset_name': asset.name,  
+            'Asset_name': asset.name, 
+            'asset_code': asset.asset_code, 
             'name': asset.name,
             'category': asset.category.id if asset.category else None,
             'category_name': asset.category.name if asset.category else None, 
-            'asset_subcategory': list(asset.asset_subcategory.values_list('id', flat=True)),
-            'subcategory_name': [sub.name for sub in asset.asset_subcategory.all()], 
+            'asset_subcategory': asset.asset_subcategory.id if asset.asset_subcategory else None,
+            'subcategory_name': asset.asset_subcategory.name if asset.asset_subcategory else None,
             'supplier': list(asset.supplier.values_list('id', flat=True)),
             'supplier_name': ', '.join([sup.name for sup in asset.supplier.all()]), 
             'Company_Brand': asset.Company_Brand,
@@ -131,45 +161,91 @@ def calculate_current_value(asset):
     return float(asset.purchase_price)
 
 
+from datetime import datetime
+
+
 @csrf_exempt
 @require_http_methods(['PUT'])
-def Asset_Reg_put(request,asset_id):
+def Asset_Reg_put(request, asset_id):
     try:
         data = json.loads(request.body)
-        # asset_id = data.get('id')
+
         asset = AssetReg_Data.objects.get(id=asset_id)
 
-        
         category_id = data.pop('category', None)
-        subcategory_ids = data.pop('asset_subcategory', [])
         supplier_ids = data.pop('supplier', [])
         
-        if not isinstance(subcategory_ids, list):
-            subcategory_ids = [subcategory_ids] if subcategory_ids else []
-        if not isinstance(supplier_ids, list):
-            supplier_ids = [supplier_ids] if supplier_ids else []
-        
+        subcategory_id = data.pop('asset_subcategory', None)
+        if subcategory_id:
+            asset.asset_subcategory = get_object_or_404(AssetSubCategory, id=subcategory_id)
+        else:
+            asset.asset_subcategory = None
+
+        # Ensure IDs are lists
+        subcategory_id = subcategory_id if isinstance(subcategory_id, list) else [subcategory_id]
+        supplier_ids = supplier_ids if isinstance(supplier_ids, list) else [supplier_ids]
+
+        # Parse purchase_date
+        purchase_date_str = data.get('purchase_date')
+        if purchase_date_str:
+            possible_formats = ["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S.%fZ"]
+            purchase_date = None
+
+            for fmt in possible_formats:
+                try:
+                    purchase_date = datetime.strptime(purchase_date_str, fmt).date()
+                    break
+                except ValueError:
+                    continue
+
+            if purchase_date is None:
+                return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD or ISO 8601 format.'}, status=400)
+
+            asset.purchase_date = purchase_date
+            # Remove purchase_date from data to prevent overwriting in the loop below
+            if 'purchase_date' in data:
+                del data['purchase_date']
+
+        # Update fields dynamically (excluding purchase_date if it was processed)
         for field, value in data.items():
             setattr(asset, field, value)
-        
-        if category_id:
-            asset.category = AssetCategory.objects.get(id=category_id)
-        else:
-            asset.category = None
-        
+
+        # Update category
+        asset.category = AssetCategory.objects.get(id=category_id) if category_id else None
+
+        # Only update asset_code if relevant fields changed
+        if (
+            asset.name != data.get('name', asset.name) or
+            asset.current_location != data.get('current_location', asset.current_location) or
+            (purchase_date_str and asset.purchase_date != purchase_date)
+        ):
+            if asset.name and asset.current_location and asset.purchase_date:
+                base_code = f"{asset.name[:2].upper()}/{''.join([w[0].upper() for w in asset.current_location.split()])}/{asset.purchase_date.strftime('%y%m%d')}"
+                existing_codes = set(AssetReg_Data.objects.values_list('asset_code', flat=True))
+
+                count = 1
+                unique_code = base_code
+
+                while unique_code in existing_codes:
+                    unique_code = f"{base_code}/{str(count).zfill(2)}"
+                    count += 1
+
+                asset.asset_code = unique_code
+
         asset.save()
-        
-        asset.asset_subcategory.set(AssetSubCategory.objects.filter(id__in=subcategory_ids))
+
+        # Update Many-to-Many relationships
+        asset.asset_subcategory.set(AssetSubCategory.objects.filter(id__in=subcategory_id))
         asset.supplier.set(Supplier.objects.filter(id__in=supplier_ids))
-        
+
         return JsonResponse({'message': 'Asset updated successfully'})
-    
+
     except AssetReg_Data.DoesNotExist:
         return JsonResponse({'error': 'Asset not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
     
-
+    
 # --------------------------------------------AssetList---------------------------------------------------------
 
 
@@ -236,6 +312,8 @@ def assetList_Get(request):
         for asset in assets:
             asset_data.append({
                 'id': asset.id,
+                'asset_code': asset.asset_code, 
+
                 'name': asset.name,
                 'category': {
                     'id': asset.category.id if asset.category else None,
@@ -260,27 +338,60 @@ def assetList_Get(request):
 
 @csrf_exempt
 @require_http_methods(['PUT'])
-def assetList_PUT(request):
+def assetList_PUT(request, asset_id):  
     try:
         data = json.loads(request.body.decode('utf-8'))
-        asset_id = data.get('id')
 
-        if not asset_id:
-            return JsonResponse({'error': 'Asset ID is required for updating'}, status=400)
-
-        asset = AssetList.objects.filter(id=asset_id).first()
-        if not asset:
+        try:
+            asset = AssetReg_Data.objects.get(id=asset_id)  
+        except AssetReg_Data.DoesNotExist:
             return JsonResponse({'error': 'Asset not found'}, status=404)
 
-        asset.name = data.get('name', asset.name)
-        asset.category_id = data.get('category_id', asset.category_id)
-        asset.subcategory_id = data.get('subcategory_id', asset.subcategory_id)
-        asset.supplier = data.get('supplier', asset.supplier)
-        asset.status = data.get('status', asset.status)
-        asset.condition = data.get('condition', asset.condition)
-        asset.valuation_method = data.get('valuation_method', asset.valuation_method)
+        if 'name' in data:
+            asset.name = data['name']
+        if 'asset_code' in data:
+            asset.asset_code = data['asset_code']
+        if 'category_id' in data:
+            asset.category_id = data['category_id']
+        if 'subcategory_id' in data:
+            asset.asset_subcategory.clear()
+            if data['subcategory_id']:
+                asset.asset_subcategory.add(data['subcategory_id'])
+        if 'supplier' in data:
+            asset.supplier.clear()
+            if isinstance(data['supplier'], list):
+                for supplier_name in data['supplier']:
+                    supplier, _ = Supplier.objects.get_or_create(name=supplier_name)
+                    asset.supplier.add(supplier)
+        if 'status' in data:
+            asset.status = data['status']
+        if 'condition' in data:
+            asset.condition = data['condition']
+        if 'valuation_method' in data:
+            asset.valuation_method = data['valuation_method']
+
         asset.save()
 
-        return JsonResponse({'message': 'Asset updated successfully', 'id': asset.id}, status=200)
+        return JsonResponse({
+            'message': 'Asset updated successfully',
+            'asset': {
+                'id': asset.id,
+                'name': asset.name,
+                'asset_code': asset.asset_code,
+                'category': {
+                    'id': asset.category.id if asset.category else None,
+                    'name': asset.category.name if asset.category else None
+                },
+                'subcategory': [{
+                    'id': sub.id,
+                    'name': sub.name
+                } for sub in asset.asset_subcategory.all()],
+                'supplier': list(asset.supplier.values_list('name', flat=True)),
+                'status': asset.status,
+                'condition': asset.condition,
+                'valuation_method': asset.valuation_method,
+            }
+        })
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        print(f"Error updating asset: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

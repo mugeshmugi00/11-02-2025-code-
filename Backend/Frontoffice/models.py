@@ -1621,4 +1621,16 @@ class Multiple_Payment_Radiology_Table_Detials(models.Model):
     def __str__(self):
         return self.Payment_Type
     
+    
+class FamilyMember(models.Model):
+    primary_patient = models.ForeignKey(Patient_Detials, on_delete=models.CASCADE, related_name='primary_member')
+    family_member = models.ForeignKey(Patient_Detials, on_delete=models.CASCADE, related_name='family_members')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('primary_patient', 'family_member')
+        
+    def __str__(self):
+        return f"{self.primary_patient.PatientId} -> {self.family_member.PatientId}"
                 

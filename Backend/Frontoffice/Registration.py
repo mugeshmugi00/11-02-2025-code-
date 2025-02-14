@@ -1386,25 +1386,38 @@ def Patient_Registration(request):
     elif request.method == 'GET':
         try:
             patient_id = request.GET.get('PatientId')
+
             if patient_id:
                 patient = Patient_Detials.objects.get(PatientId=patient_id)
-                return JsonResponse({
+
+                Patients_dict = {
                     'id': patient.PatientId,
                     'phoneNo': patient.PhoneNo,
                     'firstName': patient.FirstName,
                     'lastName': patient.SurName,
-                })
-            else:
-                patients = list(Patient_Detials.objects.values())
-                return JsonResponse(patients, safe=False)
-        except Patient_Detials.DoesNotExist:
-            return JsonResponse({'error': 'Patient with the given ID does not exist'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
-        
-    else:
-        return JsonResponse({'error': 'Invalid request method'}, status=405)
+                }
 
+                return JsonResponse(Patients_dict, safe=False)
+            else:
+                # If no patient_id is provided, return all patients
+                patients = list(Patient_Detials.objects.values())
+
+                # Ensure byte fields are properly converted
+                for patient in patients:
+                    for key, value in patient.items():
+                        if isinstance(value, bytes):
+                            patient[key] = value.decode()
+
+                return JsonResponse(patients, safe=False)
+
+        except Patient_Detials.DoesNotExist:
+            return JsonResponse({'error': 'Patient with the given ID does not exist'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    # Ensure a response is always returned
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 # @csrf_exempt
 # @require_http_methods(["POST", "OPTIONS", "GET"])
@@ -10034,6 +10047,89 @@ def ABHA_card_get(request):
         
 # ------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------
+@api_view(['GET'])
+@csrf_exempt
+def search_patients_by_phone(request):
+    phone = request.GET.get('phone', '').strip()
+    print("phone:",phone)
+    if not phone:
+        return Response({'error': 'Phone number is required'}, status=400)
+    
+    patients = Patient_Detials.objects.filter(PhoneNo=phone)
+    print("patients:",patients)
+    data = [{
+        'PatientId': p.PatientId,
+        'FirstName': p.FirstName,
+        'MiddleName': p.MiddleName or '',
+        'SurName': p.SurName or '',
+        'PhoneNo': p.PhoneNo,
+        'Status': p.Status or 'Unknown'
+    } for p in patients]
+    print("data:",data)
+    return Response(data if data else [], status=200)
+from django.shortcuts import get_object_or_404
 
+@api_view(['POST'])
+@csrf_exempt
+def add_family_members(request):
+    try:
+        primary_patient_id = request.data.get('primary_patient_id')
+        family_member_ids = request.data.get('family_member_ids', [])
+
+        if not primary_patient_id:
+            return Response({'error': 'Primary patient ID is required'}, status=400)
+
+        print("primary_patient_id:", primary_patient_id)
+        print('family_member_ids:', family_member_ids)
+
+        primary_patient = get_object_or_404(Patient_Detials, PatientId=primary_patient_id)
+
+        # Create family member relationships
+        for member_id in family_member_ids:
+            if member_id != primary_patient_id: 
+                family_member = get_object_or_404(Patient_Detials, PatientId=member_id)
+                FamilyMember.objects.get_or_create(primary_patient=primary_patient, family_member=family_member)
+
+        family_members = FamilyMember.objects.filter(primary_patient=primary_patient)
+        print("family_members:",family_members)
+        data = [{
+            'id': fm.family_member.PatientId,
+            'name': f"{fm.family_member.FirstName} {fm.family_member.MiddleName or ''} {fm.family_member.SurName or ''}".strip(),
+            'mobileNumber': fm.family_member.PhoneNo,
+        } for fm in family_members]
+
+        print("Updated family members:", data)
+        return Response(data, status=200)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['PUT'])
+@csrf_exempt
+def update_family_members(request, patient_id):
+    try:
+        patient = Patient_Detials.objects.get(PatientId=patient_id)
         
+        family_member_ids = request.data.get("family_member_ids", [])
+
+        if not family_member_ids:
+            return Response({'error': 'No family members provided'}, status=400)
+
+        FamilyMember.objects.filter(primary_patient=patient).delete()
+
+        for member_id in family_member_ids:
+            if member_id != patient_id:  
+                family_member = get_object_or_404(Patient_Detials, PatientId=member_id)
+                FamilyMember.objects.create(primary_patient=patient, family_member=family_member)
+
+        family_members = FamilyMember.objects.filter(primary_patient=patient)
+        data = [{
+            'id': fm.family_member.PatientId,
+            'name': f"{fm.family_member.FirstName} {fm.family_member.MiddleName or ''} {fm.family_member.SurName or ''}".strip(),
+            'mobileNumber': fm.family_member.PhoneNo,
+        } for fm in family_members]
         
+        return Response(data, status=200)
+        
+    except Patient_Detials.DoesNotExist:
+        return Response({'error': 'Patient not found'}, status=404)

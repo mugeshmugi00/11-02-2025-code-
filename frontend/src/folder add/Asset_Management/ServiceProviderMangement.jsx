@@ -17,7 +17,7 @@ const ServiceProviderMangement = () => {
         name: '',
         contact_info: '',
         email: '',
-        asset_category: '',
+        asset_categories: '',
         subcategories: [],
         status: 'active',
         cost_effective: true,
@@ -44,12 +44,12 @@ const ServiceProviderMangement = () => {
             fetchServiceProviders();
             return;
         }
-    
+
         const filtered = ServiceProviderColumnData.filter(provider =>
             provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             provider.email.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    
+
         setServiceProviderColumnData(filtered);
     };
 
@@ -82,14 +82,14 @@ const ServiceProviderMangement = () => {
 
     useEffect(() => {
         if (editingServiceProvider) {
-            fetchSubcategories(editingServiceProvider.asset_category);
+            fetchSubcategories(editingServiceProvider.asset_categories);
 
             setFormData(prev => ({
                 ...prev,
                 name: editingServiceProvider.name,
                 contact_info: editingServiceProvider.contact_info,
                 email: editingServiceProvider.email,
-                asset_category: editingServiceProvider.asset_category,
+                asset_categories: editingServiceProvider.asset_categories,
                 subcategories: Array.isArray(editingServiceProvider.subcategories)
                     ? editingServiceProvider.subcategories.map(subcat =>
                         typeof subcat === 'object' ? subcat.id : subcat
@@ -114,8 +114,8 @@ const ServiceProviderMangement = () => {
             name: sp.name,
             contact_info: sp.contact_info,
             email: sp.email,
-            asset_categories: sp.asset_categories || [],
-            subcategories: sp.subcategories || [],
+            asset_categories: sp.asset_categories , 
+            subcategories: sp.subcategories, 
             cost_effective: sp.cost_effective ? "Yes" : "No",
             service_quality: sp.service_quality,
             hourly_rate: sp.hourly_rate,
@@ -125,6 +125,7 @@ const ServiceProviderMangement = () => {
             rating: sp.rating,
             status: sp.status,
         }));
+        
         console.log("Mapped Data:", mappedData);
         setServiceProviderColumnData(mappedData);
     }, [serviceProviders]);
@@ -132,7 +133,10 @@ const ServiceProviderMangement = () => {
     const fetchServiceProviders = async () => {
         try {
             const response = await axios.get(`${UrlLink}AccetCategory/ServiceProviderManagement_GET/`);
-            console.log('Service Providers Response:', response.data);
+            console.log('Service Providers Raw Response:', response.data);
+            if (response.data.length > 0) {
+                console.log('Example asset_categories structure:', response.data[0].asset_categories);
+            }
             setServiceProviders(response.data);
         } catch (error) {
             console.error('Error fetching service providers:', error);
@@ -181,7 +185,7 @@ const ServiceProviderMangement = () => {
                 [name]: type === 'checkbox' ? checked : value
             };
 
-            if (name === 'asset_category' && value) {
+            if (name === 'asset_categories' && value) {
                 console.log('Asset category changed to:', value);
                 fetchSubcategories(value);
             }
@@ -208,7 +212,7 @@ const ServiceProviderMangement = () => {
         try {
             const dataToSend = {
                 ...formData,
-                asset_category: parseInt(formData.asset_category),  // Ensure it's a number
+                asset_categories: parseInt(formData.asset_categories),  // Ensure it's a number
                 hourly_rate: parseFloat(formData.hourly_rate) || 0.0,
                 years_of_experience: parseInt(formData.years_of_experience) || 0,
                 ranking: parseInt(formData.ranking) || 0,
@@ -296,7 +300,7 @@ const ServiceProviderMangement = () => {
             name: '',
             contact_info: '',
             email: '',
-            asset_category: '',
+            asset_categories: '',
             subcategories: [],
             status: 'active',
             cost_effective: true,
@@ -387,19 +391,10 @@ const ServiceProviderMangement = () => {
             key: 'asset_categories',
             name: 'Asset Categories',
             renderCell: (params) => {
-                console.log("Asset Categories Data:", params.row.asset_categories); // Debug log
-
-                const categories = params.row.asset_categories || [];
-
-                if (!Array.isArray(categories) || categories.length === 0) {
-                    return 'No categories';
-                }
-
-                return categories
-                    .filter(cat => cat && typeof cat === 'object')
-                    .map(cat => cat.name)
-                    .filter(Boolean)
-                    .join(', ');
+                const categories = params.row.asset_categories;
+                if (!categories || !Array.isArray(categories)) return 'N/A';
+                const categoryNames = categories.map(cat => cat.name).filter(name => name);
+                return categoryNames.length > 0 ? categoryNames.join(', ') : 'N/A';
             }
         },
         {
@@ -553,8 +548,8 @@ const ServiceProviderMangement = () => {
                         Asset Category <span>:</span>
                     </label>
                     <select
-                        name="asset_category"
-                        value={formData.asset_category}
+                        name="asset_categories"
+                        value={formData.asset_categories}
                         onChange={handleInputChange}
                         required
                     >
@@ -565,7 +560,7 @@ const ServiceProviderMangement = () => {
                     </select>
                 </div>
 
-                {formData.asset_category && (
+                {formData.asset_categories && (
                     <div className="RegisForm_1">
                         <label>
                             Subcategories <span>:</span>

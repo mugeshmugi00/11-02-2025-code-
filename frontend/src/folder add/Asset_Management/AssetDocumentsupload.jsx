@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import ToastAlert from '../../OtherComponent/ToastContainer/ToastAlert';
 import { Button } from '@mui/material';
 import ReactGrid from '../../OtherComponent/ReactGrid/ReactGrid';
 import EditIcon from "@mui/icons-material/Edit";
@@ -9,7 +8,180 @@ import axios from 'axios';
 
 
 const AssetDocumentsupload = () => {
+
+    const UrlLink = useSelector(state => state.userRecord?.UrlLink);
     const [RackMasterPage, setRackMasterPage] = useState('AssetDocumentsupload')
+
+    // const [categories, setCategories] = useState([]);
+    // const [subcategories, setSubcategories] = useState([]);
+    // const [assets, setAssets] = useState([]);
+    // const [selectedCategory, setSelectedCategory] = useState('');
+    // const [selectedSubcategory, setSelectedSubcategory] = useState('');
+    // const [selectedAsset, setSelectedAsset] = useState('');
+    // const [documentType, setDocumentType] = useState('');
+    // const [documents, setDocuments] = useState([]);
+    // const [file, setFile] = useState(null);
+    // const [description, setDescription] = useState('');
+    // const [message, setMessage] = useState('');
+    // const [isLoading, setIsLoading] = useState(false);
+    // const [showDocuments, setShowDocuments] = useState(false);
+    // const [showAlert, setShowAlert] = useState(false);
+    // // Fetch categories on component mount
+    // useEffect(() => {
+    //     fetchCategories();
+    // }, []);
+
+    // // Fetch categories
+    // const fetchCategories = async () => {
+    //     try {
+    //         const response = await axios.get(`${UrlLink}AccetCategory/asset_categories_list/`);
+    //         setCategories(response.data);
+    //     } catch (error) {
+    //         console.error('Error fetching categories:', error);
+    //         setMessage('Failed to fetch categories.');
+    //     }
+    // };
+
+    // // Handle category change and fetch subcategories
+    // const handleCategoryChange = async (categoryId) => {
+    //     setSelectedCategory(categoryId);
+    //     setSelectedSubcategory('');
+    //     setAssets([]);
+    //     setShowDocuments(false);
+
+    //     try {
+    //         const response = await axios.get(`${UrlLink}AccetCategory/get_asset_subcategories/?category_id=${categoryId}`);
+    //         setSubcategories(response.data);
+    //     } catch (error) {
+    //         console.error('Error fetching subcategories:', error);
+    //         setMessage('Failed to fetch subcategories.');
+    //     }
+    // };
+
+    // const handleSubcategoryChange = async (subcategoryId) => {
+    //     setSelectedSubcategory(subcategoryId);
+    //     setShowDocuments(false);
+    //     try {
+    //         const response = await axios.get(`${UrlLink}AccetCategory/get_asset_subcategories?category=${selectedCategory}&subcategory=${subcategoryId}`);
+    //         setAssets(response.data);
+    //     } catch (error) {
+    //         console.error('Error fetching assets:', error);
+    //     }
+    // };
+    // const handleSelectedAsset = async (assetId) => {
+    //     try {
+    //         const response = await axios.get(`${UrlLink}AccetCategory/Asset_Reg_Get?id=${assetId}`);
+    //         if (response.data && response.data.length > 0) {
+    //             const asset = response.data[0];
+    //             setSelectedAsset(assetId);
+    //             setAssets(response.data)
+    //             setShowDocuments(false);
+
+    //         }
+    //     } catch (error) {
+    //         console.error('Error fetching assets:', error);
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     if (selectedAsset) {
+    //         fetchDocuments();
+    //     }
+    // }, [selectedAsset]);
+
+
+    // const handleFileChange = (e) => {
+    //     const selectedFile = e.target.files[0];
+    //     if (selectedFile) {
+    //         // Check file size (e.g., 5MB limit)
+    //         if (selectedFile.size > 5 * 1024 * 1024) {
+    //             setMessage('File size should be less than 5MB');
+    //             e.target.value = '';
+    //             return;
+    //         }
+    //         setFile(selectedFile);
+    //         setMessage('');
+    //     }
+    // };
+
+    // const fetchDocuments = async () => {
+    //     if (!selectedAsset) {
+    //         setMessage('Please select an asset to fetch documents.');
+    //         return;
+    //     }
+
+    //     try {
+    //         setIsLoading(true);
+    //         const response = await axios.get(`${UrlLink}AccetCategory/assetdocumentsuploadget`, {
+    //             params: { asset_code: selectedAsset }
+    //         });
+
+    //         if (Array.isArray(response.data)) {
+    //             setDocuments(response.data);
+    //             setShowDocuments(true);
+    //             if (response.data.length === 0) {
+    //                 setMessage('No documents found for the selected asset.');
+    //             }
+    //         } else {
+    //             setMessage('Invalid response format from server.');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error fetching documents:', error);
+    //         setMessage(error.response?.data?.error || 'Failed to fetch documents.');
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
+    // // -----------
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     setIsLoading(true);
+    //     setMessage('');
+
+    //     if (!selectedAsset || !documentType || !file || !selectedCategory || !selectedSubcategory) {
+    //         setMessage('Please fill all required fields.');
+    //         setIsLoading(false);
+    //         return;
+    //     }
+
+    //     const formData = new FormData();
+    //     formData.append('file', file);
+    //     formData.append('asset', selectedAsset); // This should be the asset ID
+    //     formData.append('document_type', documentType);
+    //     formData.append('description', description || '');
+    //     formData.append('category', selectedCategory);
+    //     formData.append('subcategory', selectedSubcategory);
+
+    //     try {
+    //         const response = await axios.post(
+    //             `${UrlLink}AccetCategory/assetdocumentsuploadpost`,
+    //             formData,
+    //             {
+    //                 headers: {
+    //                     'Content-Type': 'multipart/form-data',
+    //                 },
+    //             }
+    //         );
+
+    //         if (response.data.message) {
+    //             setShowAlert(true);
+    //             setMessage('Document uploaded successfully!');
+    //             setDocumentType('');
+    //             setFile(null);
+    //             setDescription('');
+    //             const fileInput = document.querySelector('input[type="file"]');
+    //             if (fileInput) fileInput.value = '';
+
+    //             await fetchDocuments();
+    //         }
+    //     } catch (error) {
+    //         console.error('Error uploading document:', error);
+    //         setMessage(error.response?.data?.error || 'Failed to upload document.');
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
     const [categories, setCategories] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
     const [assets, setAssets] = useState([]);
@@ -22,15 +194,16 @@ const AssetDocumentsupload = () => {
     const [description, setDescription] = useState('');
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    // Fetch categories on component mount
+    const [showDocuments, setShowDocuments] = useState(false);
+    const [showAlert, setShowAlert] = useState(false);
+
     useEffect(() => {
         fetchCategories();
     }, []);
 
-    // Fetch categories
     const fetchCategories = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/asset-categories/');
+            const response = await axios.get(`${UrlLink}AccetCategory/asset_categories_list/`);
             setCategories(response.data);
         } catch (error) {
             console.error('Error fetching categories:', error);
@@ -38,36 +211,58 @@ const AssetDocumentsupload = () => {
         }
     };
 
-    // Handle category change and fetch subcategories
     const handleCategoryChange = async (categoryId) => {
         setSelectedCategory(categoryId);
         setSelectedSubcategory('');
-        setAssets([]); // Reset assets when category changes
-
+        setSelectedAsset('');
+        setAssets([]);
+        setShowDocuments(false);
+        setDocuments([]);
+    
         try {
-            const response = await axios.get(`http://localhost:8000/api/assets/get_subcategories/?category_id=${categoryId}`);
-            setSubcategories(response.data);
+            const response = await axios.get(`${UrlLink}AccetCategory/get_asset_subcategories/?category_id=${categoryId}`);
+            setSubcategories(response.data); // No need to filter; backend handles it
         } catch (error) {
             console.error('Error fetching subcategories:', error);
             setMessage('Failed to fetch subcategories.');
         }
     };
 
-    // Fetch assets when both category and subcategory are selected
     const handleSubcategoryChange = async (subcategoryId) => {
         setSelectedSubcategory(subcategoryId);
+        setSelectedAsset('');
+        setShowDocuments(false);
+        setDocuments([]);
+    
         try {
-            const response = await axios.get(`http://localhost:8000/api/assets/?category=${selectedCategory}&subcategory=${subcategoryId}`);
-            setAssets(response.data);
+            const response = await axios.get(`${UrlLink}AccetCategory/get_assets/?subcategory_id=${subcategoryId}`);
+            setAssets(response.data); 
+            console.log("response:",response)
         } catch (error) {
             console.error('Error fetching assets:', error);
+            setMessage('Failed to fetch assets.');
         }
     };
 
-    // Handle file change
-    const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
+    const handleSelectedAsset = (assetId) => {
+        setSelectedAsset(assetId);
+        setShowDocuments(false);
+        setDocuments([]);
     };
+
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            if (selectedFile.size > 5 * 1024 * 1024) {
+                setMessage('File size should be less than 5MB');
+                e.target.value = '';
+                return;
+            }
+            setFile(selectedFile);
+            setMessage('');
+        }
+    };
+
     const fetchDocuments = async () => {
         if (!selectedAsset) {
             setMessage('Please select an asset to fetch documents.');
@@ -76,16 +271,13 @@ const AssetDocumentsupload = () => {
 
         try {
             setIsLoading(true);
-            setMessage('');
-
-            const response = await axios.get(`http://localhost:8000/api/asset-documents/by-asset/`, {
-                params: {
-                    asset_code: selectedAsset
-                }
+            const response = await axios.get(`${UrlLink}AccetCategory/assetdocumentsuploadget`, {
+                params: { asset_code: selectedAsset }
             });
 
-            if (response.data && Array.isArray(response.data)) {
+            if (Array.isArray(response.data)) {
                 setDocuments(response.data);
+                setShowDocuments(true);
                 if (response.data.length === 0) {
                     setMessage('No documents found for the selected asset.');
                 }
@@ -93,24 +285,19 @@ const AssetDocumentsupload = () => {
                 setMessage('Invalid response format from server.');
             }
         } catch (error) {
-            if (error.response && error.response.status === 404) {
-                setMessage('No documents found for this asset.');
-            } else {
-                setMessage('Error fetching documents. Please try again.');
-                console.error('Error fetching documents:', error);
-            }
+            console.error('Error fetching documents:', error);
+            setMessage(error.response?.data?.error || 'Failed to fetch documents.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Modified handleSubmit function to handle errors better
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setMessage('');
 
-        if (!selectedAsset || !documentType || !file) {
+        if (!selectedAsset || !documentType || !file || !selectedCategory || !selectedSubcategory) {
             setMessage('Please fill all required fields.');
             setIsLoading(false);
             return;
@@ -120,84 +307,90 @@ const AssetDocumentsupload = () => {
         formData.append('file', file);
         formData.append('asset', selectedAsset);
         formData.append('document_type', documentType);
-        formData.append('description', description);
-
-        console.log("Form Data: ", formData);  // Add this for debugging
+        formData.append('description', description || '');
+        formData.append('category', selectedCategory);
+        formData.append('subcategory', selectedSubcategory);
 
         try {
-            const response = await axios.post('http://localhost:8000/api/asset-documents/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
+            const response = await axios.post(
+                `${UrlLink}AccetCategory/assetdocumentsuploadpost`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
                 }
-            });
+            );
 
-            setMessage('Document uploaded successfully!');
-            setDocumentType('');
-            setFile(null);
-            setDescription('');
-
-            // Refresh the documents list
-            fetchDocuments();
-        } catch (error) {
-            if (error.response) {
-                setMessage(error.response.data.error || 'Failed to upload document.');
-            } else {
-                setMessage('Network error. Please try again.');
+            if (response.data.message) {
+                setShowAlert(true);
+                setMessage('Document uploaded successfully!');
+                setTimeout(() => setShowAlert(false), 3000);
+                setDocumentType('');
+                setFile(null);
+                setDescription('');
+                const fileInput = document.querySelector('input[type="file"]');
+                if (fileInput) fileInput.value = '';
+                setShowDocuments(false);
+                setDocuments([]);
             }
+        } catch (error) {
             console.error('Error uploading document:', error);
+            setMessage(error.response?.data?.error || 'Failed to upload document.');
         } finally {
             setIsLoading(false);
         }
     };
+    // ----------------------------------------------------------------------------
     // ------------------------------Asset document List--------------------------------
-    const [availableAssets, setAvailableAssets] = useState([]);
-    const [currentAssetCode, setCurrentAssetCode] = useState('');
-    const [selectedDocCategory, setSelectedDocCategory] = useState('');
-    const [assetDocuments, setAssetDocuments] = useState([]);
-    const [activeDocumentPreview, setActiveDocumentPreview] = useState(null); // Track selected document
+    // const [availableAssets, setAvailableAssets] = useState([]);
+    // const [currentAssetCode, setCurrentAssetCode] = useState('');
+    // const [selectedDocCategory, setSelectedDocCategory] = useState('');
+    // const [assetDocuments, setAssetDocuments] = useState([]);
+    // const [activeDocumentPreview, setActiveDocumentPreview] = useState(null); // Track selected document
 
-    const navigate = useNavigate(); // Updated to use useNavigate
+    // const navigate = useNavigate(); // Updated to use useNavigate
 
-    useEffect(() => {
-        const fetchAssets = async () => {
-            try {
-                const response = await axios.get('http://localhost:8000/api/assets');
-                setAvailableAssets(response.data);
-            } catch (error) {
-                console.error('Error fetching assets:', error);
-            }
-        };
-        fetchAssets();
-    }, []);
+    // useEffect(() => {
+    //     const fetchAssets = async () => {
+    //         try {
+    //             const response = await axios.get(`${UrlLink}AccetCategory/asset_categories_list/`);
+    //             setAvailableAssets(response.data);
+    //         } catch (error) {
+    //             console.error('Error fetching assets:', error);
+    //         }
+    //     };
+    //     fetchAssets();
+    // }, []);
 
-    const fetchDocumentsAsset = async () => {
-        try {
-            const response = await axios.get(`http://localhost:8000/api/asset-documents/by-asset/`, {
-                params: {
-                    asset_code: currentAssetCode,
-                    document_type: selectedDocCategory,
-                }
-            });
-            setAssetDocuments(response.data);
-        } catch (error) {
-            console.error('Error fetching documents:', error);
-        }
-    };
+    // const fetchDocumentsAsset = async () => {
+    //     try {
+    //         const response = await axios.get(`http://localhost:8000/api/asset-documents/by-asset/`, {
+    //             params: {
+    //                 asset_code: currentAssetCode,
+    //                 document_type: selectedDocCategory,
+    //             }
+    //         });
+    //         setAssetDocuments(response.data);
+    //     } catch (error) {
+    //         console.error('Error fetching documents:', error);
+    //     }
+    // };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        fetchDocumentsAsset();
-    };
+    // const handleSearch = (e) => {
+    //     e.preventDefault();
+    //     fetchDocumentsAsset();
+    // };
 
-    const viewDocument = (document) => {
-        // Instead of embedding, open the document in a new tab
-        window.open(document.file, '_blank');
-    };
+    // const viewDocument = (document) => {
+    //     // Instead of embedding, open the document in a new tab
+    //     window.open(document.file, '_blank');
+    // };
 
-    const closeDocumentView = () => {
-        setActiveDocumentPreview(null); // Close document view by setting it to null
-        navigate('/dashboard'); // Navigate back to dashboard using useNavigate
-    };
+    // const closeDocumentView = () => {
+    //     setActiveDocumentPreview(null); // Close document view by setting it to null
+    //     navigate('/dashboard'); // Navigate back to dashboard using useNavigate
+    // };
 
     // ------------------------------------------------------------------------------------
     return (
@@ -274,14 +467,14 @@ const AssetDocumentsupload = () => {
                                     <label>Select Asset:</label>
                                     <select
                                         value={selectedAsset}
-                                        onChange={(e) => setSelectedAsset(e.target.value)}
+                                        onChange={(e) => handleSelectedAsset(e.target.value)}
                                         disabled={!selectedSubcategory}
                                         required
                                     >
                                         <option value="">Select an Asset</option>
                                         {assets.map((asset) => (
-                                            <option key={asset.id} value={asset.asset_code}>
-                                                {asset.name} ({asset.asset_code})
+                                            <option key={asset.id} value={asset.id}>
+                                                {asset.name}
                                             </option>
                                         ))}
                                     </select>
@@ -289,7 +482,7 @@ const AssetDocumentsupload = () => {
                             </div>
 
                             {/* Document Upload Section */}
-                            <form onSubmit={handleSubmit} className="RegisFormcon_1">
+                            <div className="RegisFormcon_1">
                                 <div className="RegisForm_1">
                                     <label>Document Type:</label>
                                     <select
@@ -310,7 +503,11 @@ const AssetDocumentsupload = () => {
 
                                 <div className="RegisForm_1">
                                     <label>File:</label>
-                                    <input type="file" onChange={handleFileChange} required />
+                                    <input
+                                        type="file"
+                                        onChange={handleFileChange}
+                                        required
+                                    />
                                 </div>
 
                                 <div className="RegisForm_1">
@@ -321,27 +518,50 @@ const AssetDocumentsupload = () => {
                                     ></textarea>
                                 </div>
 
+                            </div>
+
+                            <form onSubmit={handleSubmit}>
                                 <div className="Main_container_Btn">
                                     <button type="submit" disabled={isLoading} style={{ width: '70px' }}>
                                         {isLoading ? 'Uploading...' : 'Upload'}
                                     </button>
-                                    <button type="button" onClick={fetchDocumentsAsset} disabled={isLoading} style={{ width: '70px' }}>
+                                    <button type="button" onClick={fetchDocuments} disabled={isLoading} style={{ width: '70px' }}>
                                         {isLoading ? 'Fetching...' : 'Fetch'}
                                     </button>
                                 </div>
                             </form>
 
-                            {/* Document List */}
-                            {documents.length > 0 && (
-                                <ul>
-                                    {documents.map((doc) => (
-                                        <li key={doc.id}>
-                                            <strong>{doc.asset_name} ({doc.asset_code}):</strong>
-                                            <span> - {doc.document_type}</span>
-                                            <button onClick={() => window.open(doc.file, '_blank')}>View</button>
-                                        </li>
+                            {/* {documents.length > 0 && (
+                                <div style={{ display: 'flex' }}>
+                                    {documents.map((doc, index) => (
+                                        <div >
+                                            <h3 >
+                                                {doc.asset_name}
+                                            </h3>
+                                            <p >Type: {doc.document_type}</p>
+                                            <button
+                                                onClick={() => window.open(`${UrlLink}AccetCategory${doc.file_url}`, '_blank')}
+                                            >
+                                                View
+                                            </button>
+                                        </div>
                                     ))}
-                                </ul>
+                                </div>
+                            )} */}
+                            {showDocuments && documents.length > 0 && (
+                                <div style={{ display: 'flex' }}>
+                                    {documents.map((doc, index) => (
+                                        <div key={index}>
+                                            <h3>{doc.asset_name}</h3>
+                                            <p>Type: {doc.document_type}</p>
+                                            <button
+                                                onClick={() => window.open(`${UrlLink}AccetCategory${doc.file_url}`, '_blank')}
+                                            >
+                                                View
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>
@@ -349,10 +569,9 @@ const AssetDocumentsupload = () => {
                 {/* -------------------------Asset Document List------------------ */}
                 {RackMasterPage === 'AssetDocumentList' && <>
                     <br />
-                    <div className="Main_container_app">
+                    {/* <div className="Main_container_app">
 
                         <div className="RegisFormcon_1">
-                            {/* Asset Selection */}
                             <div className="RegisForm_1">
                                 <label>
                                     Select Asset <span>:</span>
@@ -371,7 +590,6 @@ const AssetDocumentsupload = () => {
                                 </select>
                             </div>
 
-                            {/* Document Category Selection */}
                             {currentAssetCode && (
                                 <div className="RegisForm_1">
                                     <label>
@@ -395,16 +613,14 @@ const AssetDocumentsupload = () => {
                             )}
                         </div>
 
-                        {/* Button to Fetch Documents */}
                         <div className="Main_container_Btn">
                             {currentAssetCode && selectedDocCategory && (
-                                <button onClick={handleSearch} style={{ width: "95px" }}>
+                                <button onClick={handleSearch} style={{ width: "110px" }}>
                                     Fetch Documents
                                 </button>
                             )}
                         </div>
 
-                        {/* Document List */}
                         {!activeDocumentPreview ? (
                             <div className="Main_container_Btn">
                                 <ul className="document-list">
@@ -425,9 +641,10 @@ const AssetDocumentsupload = () => {
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </div> */}
 
-                </>}
+                </>
+                }
             </div>
         </>
 

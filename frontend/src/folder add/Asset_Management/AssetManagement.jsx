@@ -76,18 +76,37 @@ const AssetManagement = () => {
     const fetchAssetsList = async () => {
         try {
             const response = await axios.get(`${UrlLink}AccetCategory/Asset_Reg_Get/`);
-            console.log("API Response:", response.data); // Check if is_new_asset exists
-            const processedData = response.data.map(asset => ({
-                ...asset,
-                is_new_asset: asset.is_new_asset ?? false,
-                purchase_date: asset.purchase_date ? new Date(asset.purchase_date).toISOString().split('T')[0] : 'N/A',
-                current_value: asset.current_value ? parseFloat(asset.current_value).toFixed(2) : 'N/A'
-            }));
+            console.log("API Response:", response.data);
+
+            const processedData = response.data.map(asset => {
+                const baseCode = `${asset.name.substring(0, 2).toUpperCase()}/${asset.current_location.split(' ').map(word => word[0]).join('').toUpperCase()
+                    }/${new Date(asset.purchase_date).toISOString().slice(2, 10).replace(/-/g, '')}`;
+
+                const existingCodes = response.data.map(item => item.asset_code);
+
+                let count = 1;
+                let uniqueCode = baseCode;
+
+                while (existingCodes.includes(uniqueCode)) {
+                    uniqueCode = `${baseCode}/${String(count).padStart(2, '0')}`;
+                    count++;
+                }
+
+                return {
+                    ...asset,
+                    is_new_asset: asset.is_new_asset ?? false,
+                    purchase_date: asset.purchase_date ? new Date(asset.purchase_date).toISOString().split('T')[0] : 'N/A',
+                    current_value: asset.current_value ? parseFloat(asset.current_value).toFixed(2) : 'N/A',
+                    asset_code: uniqueCode
+                };
+            });
+
             setAssets(processedData);
         } catch (error) {
             setError('Error fetching assets list');
         }
     };
+
 
 
     const fetchAssetCategories = async () => {
@@ -170,13 +189,28 @@ const AssetManagement = () => {
         event.preventDefault();
         setError('');
 
+        // Generate asset code
+        const baseCode = `${AssetformData.name.substring(0, 2).toUpperCase()}/${AssetformData.current_location.split(' ').map(word => word[0]).join('').toUpperCase()
+            }/${new Date(AssetformData.purchase_date).toISOString().slice(2, 10).replace(/-/g, '')}`;
+
+        const existingCodes = assets.map(item => item.asset_code);
+
+        let count = 1;
+        let uniqueCode = baseCode;
+
+        while (existingCodes.includes(uniqueCode)) {
+            uniqueCode = `${baseCode}/${String(count).padStart(2, '0')}`;
+            count++;
+        }
+
         const formDataToSubmit = {
             ...AssetformData,
-
-            // Convert single values to arrays for backend
-            asset_subcategory: AssetformData.asset_subcategory ? [AssetformData.asset_subcategory] : [],
+            purchase_date: AssetformData.purchase_date 
+            ? new Date(AssetformData.purchase_date).toISOString().split('T')[0]  // This will give YYYY-MM-DD
+            : null,
+            asset_code: uniqueCode,
+            asset_subcategory: AssetformData.asset_subcategory || null,
             supplier: AssetformData.supplier ? [AssetformData.supplier] : [],
-            // Convert string numbers to actual numbers
             purchase_price: convertToNumber(AssetformData.purchase_price),
             market_value: convertToNumber(AssetformData.market_value),
             total_working_life: convertToNumber(AssetformData.total_working_life),
@@ -185,20 +219,20 @@ const AssetManagement = () => {
             salvage_value: convertToNumber(AssetformData.salvage_value),
             appreciation_rate: convertToNumber(AssetformData.appreciation_rate)
         };
+        console.log("Submitting FormData:", formDataToSubmit);
+
 
         try {
             let response;
             if (AssetformData.id) {
                 // Update existing asset (PUT request)
-                response = await axios.put(`${UrlLink}AccetCategory/Asset_Reg_put/`, {
-                    id: AssetformData.id,
-                    ...formDataToSubmit
-                });
+                response = await axios.put(`${UrlLink}AccetCategory/Asset_Reg_put/${AssetformData.id}/`, formDataToSubmit);
             } else {
                 // Create new asset (POST request)
                 response = await axios.post(`${UrlLink}AccetCategory/Asset_Reg_post/`, formDataToSubmit);
             }
             console.log('Response:', response.data);
+            
             await fetchAssetsList();
             resetForm();
         } catch (error) {
@@ -215,7 +249,7 @@ const AssetManagement = () => {
             ...initialFormState,
             ...row,
             category: row.category?.toString() || '',
-            asset_subcategory: row.asset_subcategory?.toString() || '',
+            asset_subcategory: row.asset_subcategory || '',
             supplier: row.supplier?.toString() || '',
             // department: row.department?.toString() || ''
         });
@@ -257,22 +291,7 @@ const AssetManagement = () => {
         {
             key: 'asset_code',
             name: 'Asset Code',
-            renderCell: (params) => {
-                const baseCode = `${params.row.name.substring(0, 2).toUpperCase()}/${params.row.current_location.split(' ').map(word => word[0]).join('').toUpperCase()
-                    }/${new Date(params.row.purchase_date).toISOString().slice(2, 10).replace(/-/g, '')}`;
-
-                const existingCodes = assets.map(item => item.asset_code);
-
-                let count = 1;
-                let uniqueCode = baseCode;
-
-                while (existingCodes.includes(uniqueCode)) {
-                    uniqueCode = `${baseCode}/${String(count).padStart(2, '0')}`;
-                    count++;
-                }
-
-                return uniqueCode;
-            }
+            renderCell: (params) => params.row.asset_code || 'N/A'
         }
         , {
             key: 'category_name',
@@ -280,7 +299,7 @@ const AssetManagement = () => {
         }, {
             key: 'subcategory_name',
             name: 'subcategory Name',
-            renderCell: (params) => params.row.subcategory_name.join(', ') // Display array as comma-separated
+            renderCell: (params) => (Array.isArray(params.row.subcategory_name) ? params.row.subcategory_name.join(', ') : 'N/A')
 
         }, {
             key: 'supplier_name',
@@ -378,9 +397,10 @@ const AssetManagement = () => {
     // AssetList Filters
     const [AssetListFilters, setAssetListFilters] = useState({
         name: '',
-        category: '',
-        subcategory: '',
+        category_id: '',
+        subcategory_id: '',
         // department: '',
+        asset_code: '',
         supplier: '',
         status: '',
         condition: '',
@@ -449,30 +469,65 @@ const AssetManagement = () => {
     const AssetListFetchAssets = async () => {
         try {
             console.log("Fetching asset list...");
-    
+
             const params = {
                 name: AssetListSearchTerm.trim() || '',
-                category_id: AssetListFilters.category || '',
-                subcategory_id: AssetListFilters.subcategory || '',
+                asset_code: AssetListFilters.asset_code || '',  // Include asset_code in params
+                category_id: AssetListFilters.category_id || '',
+                subcategory_id: AssetListFilters.subcategory_id || '',
                 supplier: AssetListFilters.supplier || '',
                 status: AssetListFilters.status || '',
                 condition: AssetListFilters.condition || '',
                 valuation_method: AssetListFilters.valuation_method || '',
             };
-    
+
             console.log("Sending Params:", params);
-    
+
             const response = await axios.get(`${UrlLink}AccetCategory/assetList_Get/`, { params });
             console.log("Full Response:", response.data);
-    
-            if (!response.data || response.data.length === 0) {
-                console.warn("No assets found for the given filters.");
-            }
-    
             setAssetListData(response.data);
         } catch (error) {
             console.error("Error fetching assets:", error.response?.data || error.message);
             setAssetListData([]);
+        }
+    };
+
+    const AssetListUpdateAssets = async (assetId) => {
+        try {
+            if (!assetId) {
+                console.error("No asset ID provided for update");
+                return;
+            }
+
+            // Validate asset code format
+            if (!AssetListFilters.asset_code) {
+                alert("Asset code is required!");
+                return;
+            }
+
+            const updateData = {
+                id: assetId,
+                name: AssetListFilters.name,
+                asset_code: AssetListFilters.asset_code,
+                category_id: AssetListFilters.category_id,
+                subcategory_id: AssetListFilters.subcategory_id,
+                supplier: AssetListFilters.supplier,
+                status: AssetListFilters.status,
+                condition: AssetListFilters.condition,
+                valuation_method: AssetListFilters.valuation_method,
+            };
+
+            console.log("Sending update data:", updateData);
+
+            const response = await axios.put(`${UrlLink}AccetCategory/assetList_PUT/${assetId}/`, updateData);
+            console.log("Update response:", response.data);
+
+            setAssetListEditing(null);
+            await AssetListFetchAssets();
+            alert("Asset updated successfully!");
+        } catch (error) {
+            console.error("Error updating asset:", error);
+            alert("Failed to update asset. Please try again.");
         }
     };
 
@@ -509,44 +564,45 @@ const AssetManagement = () => {
         window.print();
     };
 
-    const AssetListHandle = () => {
-        console.log("AssetList", AssetListFetchAssets());
+    const AssetListHandle = async () => {
+        console.log("Handling asset request...");
+        if (AssetListFilters.category) {
+            await AssetListUpdateAssets();
+        } else {
+            await AssetListFetchAssets();
+        }
     };
 
     // Handle edit asset
     const AssetListHandleEdit = (asset) => {
+        console.log("Selected Asset:", asset);
+
         setAssetListEditing(asset);
         setAssetListFilters({
             name: asset.name || '',
-            category: asset.category || '',
-            subcategory: asset.subcategory || '',
-            // department: asset.department || '',
-            supplier: asset.supplier || '',
+            asset_code: asset.asset_code || '',  
+            category_id: asset.category?.id || '',
+            subcategory_id: asset.subcategory?.[0]?.id || '',
+            supplier: Array.isArray(asset.supplier) ? asset.supplier[0] : asset.supplier || '',
             status: asset.status || '',
             condition: asset.condition || '',
             valuation_method: asset.valuation_method || '',
         });
 
-        if (asset.category) {
-            AssetListFetchSubcategories(asset.category);
+        if (asset.category?.id) {
+            AssetListFetchSubcategories(asset.category.id);
         }
     };
+
     const toggleStatusAssetList = async (asset) => {
         try {
-            const newStatus = asset.status === 'active' ? 'inactive' : 'active';
+            const newStatus = { ...asset, status: asset.status === 'active' ? 'inactive' : 'active' };
 
-            const response = await axios.patch(`${UrlLink}AccetCategory/update_asset_status/`, {
+            await axios.put(`${UrlLink}AccetCategory/assetList_PUT/`, {
                 asset_id: asset.id,
                 status: newStatus,
             });
-
-            if (response.status === 200) {
-                setAssetListData((prevData) =>
-                    prevData.map((item) =>
-                        item.id === asset.id ? { ...item, status: newStatus } : item
-                    )
-                );
-            }
+            AssetListFetchAssets();
         } catch (error) {
             console.error('Error updating asset status:', error);
         }
@@ -556,7 +612,12 @@ const AssetManagement = () => {
     // AssetList Columns
     const AssetListColumns = [
         { key: "name", name: "Name" },
-        { 
+        {
+            key: 'asset_code',
+            name: 'Asset Code',
+            renderCell: (params) => params.row.asset_code || 'N/A'
+        },
+        {
             key: "category",
             name: "Category",
             renderCell: (params) => params.row.category?.name || 'N/A'
@@ -581,281 +642,303 @@ const AssetManagement = () => {
                 </Button>
             )
         },
-        {
-            key: "Actions", name: "Actions",
-            renderCell: (params) => (
-                <Button className="cell_btn" onClick={() => AssetListHandleEdit(params.row)}>
-                    <EditIcon className="check_box_clrr_cancell" />
-                </Button>
-            )
-        },
+        // {
+        //     key: "Actions", name: "Actions",
+        //     renderCell: (params) => (
+        //         <Button className="cell_btn" onClick={() => AssetListHandleEdit(params.row)}>
+        //             <EditIcon className="check_box_clrr_cancell" />
+        //         </Button>
+        //     )
+        // },
     ];
 
 
 
     // -----------------------------Search Asset---------------------------------------
-    // const [searchAsset, setSearchAsset] = useState([]);
-    // const [categoryList, setCategoryList] = useState([]);
-    // const [subcategoryList, setSubcategoryList] = useState([]);
-    // const [departmentList, setDepartmentList] = useState([]);
-    // const [assetSearchData, setassetSearchData] = useState([]);
-    // const [selectedAssetForEditing, setSelectedAssetForEditing] = useState(null);
+    const [searchAsset_List, setSearchAsset_List] = useState([]);
+    const [searchAsset_CategoryList, setSearchAsset_CategoryList] = useState([]);
+    const [searchAsset_SubcategoryList, setSearchAsset_SubcategoryList] = useState([]);
+    // const [searchAsset_DepartmentList, setSearchAsset_DepartmentList] = useState([]);
+    const [searchAsset_Data, setSearchAsset_Data] = useState([]);
+    const [searchAsset_SelectedForEditing, setSearchAsset_SelectedForEditing] = useState(null);
 
-    // const [searchFilters, setSearchFilters] = useState({
-    //     assetName: '',
-    //     categoryId: '',
-    //     subcategoryId: '',
-    //     departmentId: '',
-    //     valuationMethod: '',
-    //     conditionStatus: '',
-    //     assetStatus: '',
-    // });
+    const [searchAsset_Filters, setSearchAsset_Filters] = useState({
+        assetName: '',
+        categoryId: '',
+        subcategoryId: '',
+        // departmentId: '',
+        valuationMethod: '',
+        conditionStatus: '',
+        assetStatus: '',
+    });
 
-    // useEffect(() => {
-    //     fetchSearchAsset();
-    //     fetchCategoryList();
-    //     fetchDepartmentList();
-    // }, []);
+    useEffect(() => {
+        fetchSearchAsset_List();
+        fetchCategoryList();
+        // fetchDepartmentList();
+    }, []);
 
-    // useEffect(() => {
-    //     if (searchFilters.categoryId) {
-    //         fetchSubcategoryList(searchFilters.categoryId);
-    //     } else {
-    //         setSubcategoryList([]);  // Clear subcategories if no category is selected
-    //     }
-    // }, [searchFilters.categoryId]);
+    useEffect(() => {
+        if (searchAsset_Filters.categoryId) {
+            fetchSubcategoryList(searchAsset_Filters.categoryId);
+        } else {
+            setSearchAsset_SubcategoryList([]);
+        }
+    }, [searchAsset_Filters.categoryId]);
 
-    // const fetchSearchAsset = async () => {
-    //     try {
-    //         const params = new URLSearchParams(searchFilters);
-    //         const response = await axios.get('http://localhost:8000/api/assets/', { params });
+    const fetchSearchAsset_List = async () => {
+        try {
+            // const params = new URLSearchParams(searchAsset_Filters);
+            const response = await axios.get(`${UrlLink}AccetCategory/assetList_Get/`);
+            console.log("setSearchAsset_List", setSearchAsset_List(response.data));
 
-    //         setSearchAsset(response.data);
-    //         setassetSearchData(response.data);
-    //     } catch (error) {
-    //         console.error('Error fetching assets:', error);
-    //     }
-    // };
+            // setSearchAsset_List(response.data);
+            setSearchAsset_Data(response.data);
+        } catch (error) {
+            console.error('Error fetching assets:', error);
+        }
+    };
 
-    // const fetchCategoryList = async () => {
-    //     try {
-    //         const response = await axios.get('http://localhost:8000/api/asset-categories/');
-    //         setCategoryList(response.data);
-    //     } catch (error) {
-    //         console.error('Error fetching asset categories:', error);
-    //     }
-    // };
+    const fetchCategoryList = async () => {
+        try {
+            const response = await axios.get(`${UrlLink}AccetCategory/asset_categories_list/`);
+            console.log("fetchCategoryList", setSearchAsset_CategoryList(response.data));
+        } catch (error) {
+            console.error('Error fetching asset c*ategories:', error);
+        }
+    };
 
-    // // Fetch subcategories based on the selected category
-    // const fetchSubcategoryList = async (categoryId) => {
-    //     try {
-    //         const response = await axios.get(`http://localhost:8000/api/assets/get_subcategories/?category_id=${categoryId}`);
-    //         setSubcategoryList(response.data);  // Only subcategories related to the selected category
-    //     } catch (error) {
-    //         console.error('Error fetching subcategories:', error);
-    //     }
-    // };
+    const fetchSubcategoryList = async (categoryId) => {
+        try {
+            const response = await axios.get(`${UrlLink}AccetCategory/get_asset_subcategories/?category_id=${categoryId}`);
+            setSearchAsset_SubcategoryList(response.data);
+        } catch (error) {
+            console.error('Error fetching subcategories:', error);
+        }
+    };
 
     // const fetchDepartmentList = async () => {
     //     try {
     //         const response = await axios.get('http://localhost:8000/api/departments/');
-    //         setDepartmentList(response.data);
+    //         setSearchAsset_DepartmentList(response.data);
     //     } catch (error) {
     //         console.error('Error fetching departments:', error);
     //     }
     // };
 
-    // const handleSearchChange = (e) => {
-    //     const { name, value } = e.target;
-    //     setSearchFilters(prevFilters => {
-    //         const newFilters = { ...prevFilters, [name]: value };
-    //         if (name === 'categoryId') {
-    //             newFilters.subcategoryId = '';
-    //         }
-    //         return newFilters;
-    //     });
-    // };
-    // const filteredAssets = assetSearchData.filter(asset => {
-    //     const nameMatch = searchFilters.assetName === '' || asset.name.toLowerCase().includes(searchFilters.assetName.toLowerCase());
-    //     const categoryMatch = searchFilters.categoryId === '' || asset.category.toString() === searchFilters.categoryId;
-    //     const subcategoryMatch = searchFilters.subcategoryId === '' ||
-    //         (asset.asset_subcategory && asset.asset_subcategory.toString() === searchFilters.subcategoryId);
-    //     const departmentMatch = searchFilters.departmentId === '' ||
-    //         (asset.department && asset.department.toString() === searchFilters.departmentId);
-    //     const valuationMatch = searchFilters.valuationMethod === '' || asset.valuation_method === searchFilters.valuationMethod;
-    //     const conditionMatch = searchFilters.conditionStatus === '' || asset.condition === searchFilters.conditionStatus;
-    //     const statusMatch = searchFilters.assetStatus === '' || asset.status === searchFilters.assetStatus;
+    const handleSearchChange = (e) => {
+        const { name, value } = e.target;
+        setSearchAsset_Filters(prevFilters => {
+            const newFilters = { ...prevFilters, [name]: value };
+            if (name === 'categoryId') {
+                newFilters.subcategoryId = '';
+            }
+            return newFilters;
+        });
+    };
 
-    //     return nameMatch && categoryMatch && subcategoryMatch && departmentMatch &&
-    //         valuationMatch && conditionMatch && statusMatch;
-    // });
+    useEffect(() => {
+        fetchCategoryList();
+    }, []);
 
-    // const toggleStatusAsset = async (asset) => {
-    //     const updatedStatus = asset.status === 'active' ? 'inactive' : 'active'; // Toggle status
-    //     try {
-    //         await axios.patch(`http://localhost:8000/api/assets/${asset.id}/`, { status: updatedStatus });
+    const handleSearch = async () => {
+        const { assetName, categoryId, subcategoryId, valuationMethod, conditionStatus, assetStatus } = searchAsset_Filters;
 
-    //         const updatedAssets = searchAsset.map(item =>
-    //             item.id === asset.id ? { ...item, status: updatedStatus } : item
-    //         );
-    //         setSearchAsset(updatedAssets);
-    //         setassetSearchData(updatedAssets);
-    //     } catch (error) {
-    //         console.error('Error toggling asset status:', error);
-    //     }
-    // };
+        if (!assetName && !categoryId && !subcategoryId && !valuationMethod && !conditionStatus && !assetStatus) {
+            alert("Please fill at least one field before searching.");
+            return;
+        }
 
-    // const handleEditSearchAssetCategory = (asset) => {
-    //     console.log('Editing asset category:', asset);
-    //     setSelectedAssetForEditing(asset);
-    // };
+        try {
+            // Convert filters to URL parameters
+            const params = new URLSearchParams();
+            if (assetName) params.append('name', assetName);
+            if (categoryId) params.append('category', categoryId);
+            if (subcategoryId) params.append('subcategory', subcategoryId);
+            if (valuationMethod) params.append('valuation_method', valuationMethod);
+            if (conditionStatus) params.append('condition', conditionStatus);
+            if (assetStatus) params.append('status', assetStatus);
+
+            const response = await axios.get(`${UrlLink}AccetCategory/assetList_Get/?${params.toString()}`);
+            setSearchAsset_Data(response.data);
+            setSearchAsset_List(response.data);
+        } catch (error) {
+            console.error('Error fetching filtered assets:', error);
+            alert('Error fetching data. Please try again.');
+        }
+    };
 
 
-    // const assetSearchColumn = [
-    //     {
-    //         key: 'id',
-    //         name: 'id',
-    //     },
-    //     {
-    //         key: 'assetSearch_name',
-    //         name: 'Name',
-    //     },
-    //     {
-    //         key: 'asset_code',
-    //         name: 'Asset Code',
-    //     }, {
-    //         key: 'category_name',
-    //         name: 'Category Name',
-    //     }, {
-    //         key: 'subcategory_name',
-    //         name: 'Subcategory Name',
-    //     }, {
-    //         key: 'supplier_name',
-    //         name: 'Supplier Name',
-    //     }, {
-    //         key: 'department_name',
-    //         name: 'Department Name',
-    //     }, {
-    //         key: 'current_location',
-    //         name: 'Current Location',
-    //     }, {
-    //         key: 'room_no',
-    //         name: 'Room No',
-    //     }, {
-    //         key: 'condition',
-    //         name: 'Condition',
-    //     }, {
-    //         key: 'status',
-    //         name: 'Status',
-    //         renderCell: (params) => (
-    //             <Button className="cell_btn" onClick={() => toggleStatusAsset(params.row)}>
-    //                 {params.row.status === 'active' ? "ACTIVE" : "INACTIVE"}
-    //             </Button>
-    //         )
-    //     }, {
-    //         key: 'Actions',
-    //         name: 'Actions',
-    //         renderCell: (params) => (
-    //             <Button className="cell_btn" onClick={() => handleEditSearchAssetCategory(params.row)}>
-    //                 <EditIcon className="check_box_clrr_cancell" />
-    //             </Button>
-    //         )
-    //     },
+    const toggleStatusSearchAsset = async (asset) => {
+        const updatedStatus = asset.status === 'active' ? 'inactive' : 'active';
+        try {
+            await axios.patch(`http://localhost:8000/api/assets/${asset.id}/`, { status: updatedStatus });
 
-    // ]
+            const updatedAssets = searchAsset_List.map(item =>
+                item.id === asset.id ? { ...item, status: updatedStatus } : item
+            );
+            setSearchAsset_List(updatedAssets);
+            setSearchAsset_Data(updatedAssets);
+        } catch (error) {
+            console.error('Error toggling asset status:', error);
+        }
+    };
+
+    const handleEditSearchAssetCategory = (asset) => {
+        console.log('Editing asset category:', asset);
+        setSearchAsset_SelectedForEditing(asset);
+    };
+
+
+
+    const assetSearchColumn = [
+        { key: 'id', name: 'ID' },
+        { key: 'name', name: 'Name' },
+        {
+            key: 'asset_code',
+            name: 'Asset Code',
+            renderCell: (params) => params.row.asset_code || '-'
+        },
+
+        {
+            key: 'category',
+            name: 'Category Name',
+            renderCell: (params) => params.row.category?.name || '-'  // Extract 'name' from category object
+        },
+
+        {
+            key: 'asset_subcategory',
+            name: 'Subcategory Name',
+            renderCell: (params) => params.row.subcategory?.length > 0 ? params.row.subcategory[0]?.name : '-'
+        },
+
+        {
+            key: 'supplier_name',
+            name: 'Supplier Name',
+            renderCell: (params) => Array.isArray(params.row.supplier) ? params.row.supplier.join(', ') : '-'
+        },
+
+        { key: 'condition', name: 'Condition' },
+
+        {
+            key: 'status',
+            name: 'Status',
+            renderCell: (params) => (
+                <Button className="cell_btn" onClick={() => toggleStatusSearchAsset(params.row)}>
+                    {params.row.status === 'active' ? "ACTIVE" : "INACTIVE"}
+                </Button>
+            )
+        },
+
+        // {
+        //     key: 'Actions',
+        //     name: 'Actions',
+        //     renderCell: (params) => (
+        //         <Button className="cell_btn" onClick={() => handleEditSearchAssetCategory(params.row)}>
+        //             <EditIcon className="check_box_clrr_cancell" />
+        //         </Button>
+        //     )
+        // },
+    ];
+
     // -------------------------------------------------------------------------------------------------
     // ------------------------AssetManagement-----------------------------
 
-    // const [assets, setAssets] = useState([]);
-    // const [currentPage, setCurrentPage] = useState(1);
-    // const [assetsPerPage] = useState(20);
-    // const [isEditing, setIsEditing] = useState(false);
-    // const [editingAssetId, setEditingAssetId] = useState(null);
-    // const [assetManagementData, setAssetManagementData] = useState([]);
+    const [AssetManagement_assets, setAssetManagement_Assets] = useState([]);
+    const [AssetManagement_isEditing, setAssetManagement_IsEditing] = useState(false);
+    const [editingAssetId_AssetManagement, setEditingAssetId_AssetManagement] = useState(null);
+    const [assetManagementData, setAssetManagementData] = useState([]);
 
 
 
-    // const [formData, setFormData] = useState({
-    //     id: '', name: '', category: '', asset_subcategory: '', supplier: '',
-    //     department: '', current_location: '', room_no: '', condition: '',
-    //     status: '', purchase_date: '', purchase_price: '', market_value: '',
-    //     total_working_life: '', expected_working_life: '', valuation_method: '',
-    //     is_new_asset: true, depreciation_method: '', depreciation_rate: '',
-    //     salvage_value: '', appreciation_rate: ''
-    // });
+    const [AssetManagement_formData, setAssetManagement_FormData] = useState({
+        id: '', name: '', category: '', asset_subcategory: '', supplier: '',
+        department: '', current_location: '', room_no: '', condition: '',
+        status: '', purchase_date: '', purchase_price: '', market_value: '',
+        total_working_life: '', expected_working_life: '', valuation_method: '',
+        is_new_asset: true, depreciation_method: '', depreciation_rate: '',
+        salvage_value: '', appreciation_rate: ''
+    });
 
-    // useEffect(() => {
-    //     fetchAsset();
-    // }, []);
+    useEffect(() => {
+        fetchAsset_AssetManagement();
+    }, []);
 
-    // const fetchAsset = async () => {
-    //     try {
-    //         const response = await axios.get('http://localhost:8000/api/assets/');
-    //         setAssets(response.data);
-    //     } catch (error) {
-    //         console.error('Error fetching assets:', error.response ? error.response.data : error.message);
-    //     }
-    // };
+    const fetchAsset_AssetManagement = async () => {
+        try {
+            const response = await axios.get(`${UrlLink}AccetCategory/Asset_Reg_Get/`);
+            setAssets(response.data);
+        } catch (error) {
+            console.error('Error fetching assets:', error.response ? error.response.data : error.message);
+        }
+    };
 
-    // const handleEditAsset = (asset) => {
-    //     setFormData({
-    //         id: asset.id, name: asset.name, category: asset.category.toString(),
-    //         asset_subcategory: asset.asset_subcategory.toString(), supplier: asset.supplier.toString(),
-    //         department: asset.department.toString(), current_location: asset.current_location,
-    //         room_no: asset.room_no, condition: asset.condition, status: asset.status,
-    //         purchase_date: asset.purchase_date, purchase_price: asset.purchase_price.toString(),
-    //         market_value: asset.market_value ? asset.market_value.toString() : '',
-    //         total_working_life: asset.total_working_life.toString(),
-    //         expected_working_life: asset.expected_working_life.toString(),
-    //         valuation_method: asset.valuation_method, is_new_asset: asset.is_new_asset,
-    //         depreciation_method: asset.depreciation_method || '',
-    //         depreciation_rate: asset.depreciation_rate ? asset.depreciation_rate.toString() : '',
-    //         salvage_value: asset.salvage_value ? asset.salvage_value.toString() : '',
-    //         appreciation_rate: asset.appreciation_rate ? asset.appreciation_rate.toString() : ''
-    //     });
+    const handleEditAsset_AssetManagement = (asset) => {
+        setAssetManagement_FormData({
+            id: asset.id, name: asset.name, category: asset.category.toString(),
+            asset_subcategory: asset.asset_subcategory.toString(), supplier: asset.supplier.toString(),
+            department: asset.department.toString(), current_location: asset.current_location,
+            room_no: asset.room_no, condition: asset.condition, status: asset.status,
+            purchase_date: asset.purchase_date, purchase_price: asset.purchase_price.toString(),
+            market_value: asset.market_value ? asset.market_value.toString() : '',
+            total_working_life: asset.total_working_life.toString(),
+            expected_working_life: asset.expected_working_life.toString(),
+            valuation_method: asset.valuation_method, is_new_asset: asset.is_new_asset,
+            depreciation_method: asset.depreciation_method || '',
+            depreciation_rate: asset.depreciation_rate ? asset.depreciation_rate.toString() : '',
+            salvage_value: asset.salvage_value ? asset.salvage_value.toString() : '',
+            appreciation_rate: asset.appreciation_rate ? asset.appreciation_rate.toString() : ''
+        });
 
-    //     setIsEditing(true);
-    //     setEditingAssetId(asset.id);
-    // };
+        setEditingAssetId_AssetManagement(true);
+        setEditingAssetId_AssetManagement(asset.id);
+    };
 
-    // const toggleStatus = (asset) => {
-    //     const updatedAsset = { ...asset, status: asset.status === 'active' ? 'inactive' : 'active' };
-    //     setAssets(assets.map(a => (a.id === asset.id ? updatedAsset : a)));
-    // };
+    const toggleStatus_AssetManagement = (asset) => {
+        const updatedAsset = { ...asset, status: asset.status === 'active' ? 'inactive' : 'active' };
+        setAssets(assets.map(a => (a.id === asset.id ? updatedAsset : a)));
+    };
+
+    const handle_Print_Assetmanagemnet = () => {
+
+    }
+    const handle_AssetManagementData_Search = () => {
+
+    }
 
 
-    // const assetManagementColumn = [
-    //     { key: 'name', name: 'Name', frozen: true },
-    //     { key: 'asset_code', name: 'Asset Code', frozen: true },
-    //     { 
-    //         key: 'category',
-    //         name: 'Category',
-    //     },
-    //     { 
-    //         key: 'asset_subcategory',
-    //         name: 'Subcategory',
-    //     },
-    //     { 
-    //         key: 'supplier',
-    //         name: 'Supplier',
-    //     },
-    //     {
-    //         key: 'status', name: 'Status', renderCell: (params) => (
-    //             <Button className="cell_btn" onClick={() => toggleStatus(params.row)}>
-    //                 {params.row.status === 'active' ? "ACTIVE" : "INACTIVE"}
-    //             </Button>
-    //         )
-    //     },
-    //     { key: 'purchase_date', name: 'Purchase Date' },
-    //     { key: 'purchase_price', name: 'Purchase Price' },
-    //     {
-    //         key: 'actions', name: 'Actions', renderCell: (params) => (
-    //             <Button className="cell_btn" onClick={() => handleEditAsset(params.row)}>
-    //                 <EditIcon className="check_box_clrr_cancell" />
-    //             </Button>
-    //         )
-    //     }
-    // ];
+    const assetManagementColumns = [
+        { key: 'name', name: 'Name', frozen: true },
+        { key: 'asset_code', name: 'Asset Code', frozen: true },
+        {
+            key: 'category',
+            name: 'Category',
+        },
+        {
+            key: 'asset_subcategory',
+            name: 'Subcategory',
+        },
+        {
+            key: 'supplier',
+            name: 'Supplier',
+        },
+        {
+            key: 'status', name: 'Status', renderCell: (params) => (
+                <Button className="cell_btn" onClick={() => toggleStatus_AssetManagement(params.row)}>
+                    {params.row.status === 'active' ? "ACTIVE" : "INACTIVE"}
+                </Button>
+            )
+        },
+        { key: 'purchase_date', name: 'Purchase Date' },
+        { key: 'purchase_price', name: 'Purchase Price' },
+        // {
+        //     key: 'actions', name: 'Actions', renderCell: (params) => (
+        //         <Button className="cell_btn" onClick={() => handleEditAsset_AssetManagement(params.row)}>
+        //             <EditIcon className="check_box_clrr_cancell" />
+        //         </Button>
+        //     )
+        // }
+    ];
     // ----------------------------------------------------------------------------------------------------
 
     return (
@@ -1202,8 +1285,9 @@ const AssetManagement = () => {
                         </label>
                         <input
                             type="text"
+                            name="name"
                             placeholder="Search by name..."
-                            value={AssetListSearchTerm}
+                            value={AssetListSearchTerm.name}
                             onChange={AssetListHandleSearch}
                         />
                     </div>
@@ -1212,7 +1296,7 @@ const AssetManagement = () => {
                         <label>
                             Category <span>:</span>
                         </label>
-                        <select name="category" value={AssetListFilters.category} onChange={AssetListHandleFilterChange}>
+                        <select name="category_id" value={AssetListFilters.category_id} onChange={AssetListHandleFilterChange}>
                             <option value="">Filter by Category</option>
                             {AssetListCategories.map((category) => (
                                 <option key={category.id} value={category.id}>
@@ -1227,8 +1311,8 @@ const AssetManagement = () => {
                             Subcategory <span>:</span>
                         </label>
                         <select
-                            name="subcategory"
-                            value={AssetListFilters.subcategory}
+                            name="subcategory_id"
+                            value={AssetListFilters.subcategory_id}
                             onChange={AssetListHandleFilterChange}
                             disabled={!AssetListFilters.category}
                         >
@@ -1312,7 +1396,7 @@ const AssetManagement = () => {
             {/* -------------------------Serach Asset-------------------------- */}
             {RackMasterPage === 'Searchasset' && <>
                 <br />
-                {/* <div className="Main_container_app">
+                <div className="Main_container_app">
 
                     <div className="RegisFormcon_1">
                         <div className="RegisForm_1">
@@ -1321,11 +1405,11 @@ const AssetManagement = () => {
                             </label>
                             <select
                                 name="categoryId"
-                                value={searchFilters.categoryId}
+                                value={searchAsset_Filters.categoryId}
                                 onChange={handleSearchChange}
                             >
                                 <option value="">All Categories</option>
-                                {categoryList.map(category => (
+                                {searchAsset_CategoryList.map(category => (
                                     <option key={category.id} value={category.id.toString()}>
                                         {category.name}
                                     </option>
@@ -1339,12 +1423,12 @@ const AssetManagement = () => {
                             </label>
                             <select
                                 name="subcategoryId"
-                                value={searchFilters.subcategoryId}
+                                value={searchAsset_Filters.subcategoryId}
                                 onChange={handleSearchChange}
-                                disabled={!searchFilters.categoryId}
+                                disabled={!searchAsset_Filters.categoryId}
                             >
                                 <option value="">All Subcategories</option>
-                                {subcategoryList.map(subcategory => (
+                                {searchAsset_SubcategoryList.map(subcategory => (
                                     <option key={subcategory.id} value={subcategory.id.toString()}>
                                         {subcategory.name}
                                     </option>
@@ -1352,23 +1436,23 @@ const AssetManagement = () => {
                             </select>
                         </div>
 
-                        <div className="RegisForm_1">
+                        {/* <div className="RegisForm_1">
                             <label>
                                 Department <span>:</span>
                             </label>
                             <select
                                 name="departmentId"
-                                value={searchFilters.departmentId}
+                                value={searchAsset_Filters.departmentId}
                                 onChange={handleSearchChange}
                             >
                                 <option value="">All Departments</option>
-                                {departmentList.map(department => (
+                                {fetchSearchAsset_DepartmentList.map(department => (
                                     <option key={department.id} value={department.id.toString()}>
                                         {department.name}
                                     </option>
                                 ))}
                             </select>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className="RegisFormcon_1">
@@ -1379,7 +1463,7 @@ const AssetManagement = () => {
                             <input
                                 type="text"
                                 name="assetName"
-                                value={searchFilters.assetName}
+                                value={searchAsset_Filters.assetName}
                                 onChange={handleSearchChange}
                                 placeholder="Search by Name"
                             />
@@ -1391,12 +1475,13 @@ const AssetManagement = () => {
                             </label>
                             <select
                                 name="valuationMethod"
-                                value={searchFilters.valuationMethod}
+                                value={searchAsset_Filters.valuationMethod}
                                 onChange={handleSearchChange}
                             >
                                 <option value="">All Valuation Methods</option>
                                 <option value="DEPRECIATION">Depreciation</option>
                                 <option value="APPRECIATION">Appreciation</option>
+                                <option value="NONE">No Valuation</option>
                             </select>
                         </div>
 
@@ -1406,7 +1491,7 @@ const AssetManagement = () => {
                             </label>
                             <select
                                 name="conditionStatus"
-                                value={searchFilters.conditionStatus}
+                                value={searchAsset_Filters.conditionStatus}
                                 onChange={handleSearchChange}
                             >
                                 <option value="">All Conditions</option>
@@ -1422,7 +1507,7 @@ const AssetManagement = () => {
                             </label>
                             <select
                                 name="assetStatus"
-                                value={searchFilters.assetStatus}
+                                value={searchAsset_Filters.assetStatus}
                                 onChange={handleSearchChange}
                             >
                                 <option value="">All Status</option>
@@ -1434,27 +1519,32 @@ const AssetManagement = () => {
                     </div>
 
                     <div className="Main_container_Btn">
-                        <button onClick={fetchSearchAsset} style={{ width: "95px" }}>
+                        <button onClick={handleSearch} style={{ width: "95px" }}>
                             Search
                         </button>
                     </div>
 
-                    <ReactGrid columns={assetSearchColumn} RowData={assetSearchData} />
-                </div> */}
+                    <ReactGrid columns={assetSearchColumn} RowData={searchAsset_Data} />
+                </div>
 
             </>}
             {/* ------------------------------AssetManagementData--------------------------- */}
             {RackMasterPage === 'AssetManagementData' && <>
                 <br />
-                {/* <div className="Main_container_app">
+                <div className="Main_container_app">
                     <div className="Main_container_Btn">
-                        <button onClick={handlePrint} style={{ width: "95px" }}>
+                        <button onClick={handle_Print_Assetmanagemnet} style={{ width: "95px" }}>
                             Print
                         </button>
                     </div>
+                    <div className="Main_container_Btn">
+                        <button onClick={handle_AssetManagementData_Search} style={{ width: "95px" }}>
+                            Search
+                        </button>
+                    </div>
 
-                    <ReactGrid columns={assetManagementColumn} RowData={assetManagementData} />
-                </div> */}
+                    <ReactGrid columns={assetManagementColumns} RowData={assetManagementData} />
+                </div>
             </>}
 
         </div>

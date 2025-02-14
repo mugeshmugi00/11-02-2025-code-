@@ -1020,13 +1020,106 @@ const PatientDetailsEdit = () => {
   // ---------------------------------------------------------------------------------------------------
   // --------------------------------------------------------------------------------------------------
 
-  // Fetch initial patient list
+  const HandlesearchFamily = async () => {
+    if (!searchQuery) {
+        setError("Please enter a phone number.");
+        return;
+    }
+
+    try {
+        setIsLoading(true);
+
+        const response = await axios.get(`${UrlLink}Frontoffice/search_patients_by_phone/`, {
+          params: { phone: searchQuery } 
+      });
+
+        const patientData = response.data || [];
+        const matchingPatients = Array.isArray(patientData) ? patientData : [];
+
+        const transformedData = matchingPatients.map((member) => ({
+            id: member.PatientId,
+            name: (`${member.FirstName} ${member.MiddleName || ""} ${member.SurName || ""}`).trim(),
+            mobileNumber: member.PhoneNo,
+            status: member.Status || "Unknown",
+        }));
+
+        setFamilyData(transformedData);
+        setError(transformedData.length === 0 ? 'No matching patients found' : '');
+    } catch (err) {
+        setError('Failed to fetch family member data');
+        console.error('Search error:', err);
+        setFamilyData([]); 
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+
+const handleAddFamily = async () => {
+  try {
+      if (!primaryPatientId) {
+          setError("Primary patient ID is missing.");
+          return;
+      }
+
+      if (selectedRows.length === 0) {
+          setError("Please select family members to add.");
+          return;
+      }
+
+      const selectedPatients = FamilyData.filter(patient =>
+          selectedRows.includes(patient.id)
+      );
+
+      // Update state
+      setFamilymembersData(prev => {
+          const newMembers = selectedPatients.filter(
+              newPatient => !prev.some(existingPatient =>
+                  existingPatient.id === newPatient.id
+              )
+          );
+          return [...prev, ...newMembers];
+      });
+
+      // Clear selections
+      setSelectedRows([]);
+      setError("");
+
+      try {
+          const response = await axios.post(`${UrlLink}Frontoffice/add_family_members/`, {
+              primary_patient_id: primaryPatientId,  
+              family_member_ids: selectedRows
+          }, {
+              headers: { "Content-Type": "application/json" }
+          });
+
+          console.log("Family members added:", response.data);
+      } catch (saveErr) {
+          console.error("Warning: Failed to save to backend:", saveErr);
+          setError("Failed to save family members.");
+      }
+
+  } catch (err) {
+      setError("Failed to add family members.");
+      console.error("Add family error:", err);
+  }
+};
+
+
+const handleCheckboxChange = (id) => {
+  setSelectedRows(prev =>
+      prev.includes(id) 
+          ? prev.filter(item => item !== id)
+          : [...prev, id]
+  );
+};
+
   useEffect(() => {
     const fetchPatients = async () => {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          `${UrlLink}Frontoffice/Patient_Registration`
+          `${UrlLink}Frontoffice/search_patients_by_phone`
         );
         setPatientList(response.data || []);
       } catch (err) {
@@ -1042,100 +1135,63 @@ const PatientDetailsEdit = () => {
 
   const handleChange = (e) => {
     const value = e.target.value;
-    setSearchQuery(value);
+    setSearchQuery(value.trim());
 
-    // Extract phone number or ID from the input if it's in the format "PatientId | PhoneNo | Name"
-    const phoneMatch = value.match(/\|\s*(\d+)\s*\|/);
-    const phoneNumber = phoneMatch ? phoneMatch[1] : value;
-
-    // Filter patients based on extracted phone number or typed input
-    if (phoneNumber.trim()) {
-      const filtered = patientList.filter((patient) => {
-        const searchTerm = phoneNumber.toLowerCase();
-        const fullName = `${patient.FirstName} ${patient.MiddleName || ""} ${
-          patient.SurName || ""
-        }`.toLowerCase();
-        return (
-          fullName.includes(searchTerm) ||
-          patient.PatientId.toString().includes(searchTerm) ||
-          patient.PhoneNo.toString().includes(searchTerm)
-        );
-      });
-      setFilteredPatients(filtered);
+    if (value.match(/^\d{10}$/)) {
+        setFilteredPatients(patientList.filter(patient => patient.PhoneNo === value));
     } else {
-      setFilteredPatients([]);
+        const nameParts = value.split(" ");
+        const filtered = patientList.filter(patient =>
+            nameParts.some(part =>
+                patient.FirstName.toLowerCase().includes(part.toLowerCase()) ||
+                patient.MiddleName?.toLowerCase().includes(part.toLowerCase()) ||
+                patient.SurName?.toLowerCase().includes(part.toLowerCase())
+            )
+        );
+        setFilteredPatients(filtered);
     }
-  };
+};
 
-  const HandlesearchFamily = async () => {
-    try {
-      setIsLoading(true);
-      // setError(null);
 
-      // Extract phone number if searchQuery contains multiple values
-      const phoneMatch = searchQuery.match(/\|\s*(\d+)\s*\|/);
-      const phoneNumber = phoneMatch ? phoneMatch[1] : searchQuery;
 
-      const response = await fetch(
-        `${UrlLink}Frontoffice/Patient_Registration?phone=${phoneNumber}`
-      );
-      const data = await response.json();
+const [primaryPatientId, setPrimaryPatientId] = useState(null);
 
-      if (data.error) {
-        setError(data.error);
-        setFamilyData([]);
-        return;
+useEffect(() => {
+    if (FamilyData.length > 0) {
+        setPrimaryPatientId(FamilyData[0].id); 
+    }
+}, [FamilyData]);
+
+const handle_familyUpdate_Submit = async () => {
+  if (selectedRows.length === 0) {
+      setError("Please select family members to update");
+      return;
+  }
+
+  try {
+      const primaryPatientId = localStorage.getItem("primary_patient_id"); // Ensure this is set
+
+      if (!primaryPatientId) {
+          setError("Primary patient ID is missing.");
+          return;
       }
 
-      // Transform data for display
-      const transformedData = data.map((member) => ({
-        id: member.PatientId, // Changed from 'patientId' to 'id'
-        name: `${member.FirstName} ${member.MiddleName || ""} ${
-          member.SurName || ""
-        }`.trim(),
-        mobileNumber: member.PhoneNo, // Changed from 'primaryPhone' to 'mobileNumber'
-        status: member.Status || "Unknown",
-      }));
+      await axios.put(`${UrlLink}Frontoffice/update_family_members/${primaryPatientId}/`, {
+          family_member_ids: selectedRows
+      }, {
+          headers: { "Content-Type": "application/json" }
+      });
 
-      setFamilyData(transformedData);
-    } catch (err) {
-      setError("Failed to fetch family member data");
-      console.error("Search error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setFamilymembersData(FamilyData.filter(patient => selectedRows.includes(patient.id)));
+      setSelectedRows([]);
+      setError('');
 
-  const handleCheckboxChange = (id) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-  const handleAddFamily = () => {
-    const selectedPatients = FamilyData.filter((patient) =>
-      selectedRows.includes(patient.id)
-    );
+  } catch (err) {
+      console.error("Warning: Failed to update backend:", err);
+      setError("Failed to update family members");
+  }
+};
 
-    setFamilymembersData((prev) => {
-      // Prevent duplicates
-      const newMembers = selectedPatients.filter(
-        (patient) => !prev.some((p) => p.id === patient.id)
-      );
-      return [...prev, ...newMembers];
-    });
-
-    // Clear temporary selection
-    setSelectedRows([]);
-  };
-  const handle_familyUpdate_Submit = () => {
-    // Fetch selected data from FamilyData
-    const updatedFamilyMembers = FamilyData.filter((patient) =>
-      selectedRows.includes(patient.id)
-    );
-
-    setFamilymembersData(updatedFamilyMembers);
-    setSelectedRows([]);
-  };
 
   const getRowStyle = (row) => ({
     backgroundColor: selectedRows.includes(row.id) ? "#e6f3ff" : "transparent",

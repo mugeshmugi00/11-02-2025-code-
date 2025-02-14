@@ -202,5 +202,11 @@ urlpatterns=[
  
 path('get_inhouse_doctor_list',get_inhouse_doctor_list,name='get_inhouse_doctor_list'),
     path('get_inhouse_doctor_related_patient_list',get_inhouse_doctor_related_patient_list,name='get_inhouse_doctor_related_patient_list'),
+    
+    # -------------------------------------------------------------------------------------------------------
+    path('search_patients_by_phone/',search_patients_by_phone, name='search_patients_by_phone'),
+    path('add_family_members/',add_family_members, name='add_family_members'),
+    path('update_family_members/<str:patient_id>/',update_family_members, name='update_family_members'),
+
    
     ]
